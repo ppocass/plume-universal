@@ -2,3 +2,4 @@ target/
 target-linux/
 node_modules/
 *.onnx
+dist/

@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Plume",
+  "productName": "plume",
   "version": "0.1.0",
   "identifier": "fr.plume.app",
   "mainBinaryName": "plume",
@@ -63,10 +63,21 @@
       "../icons/icon.icns",
       "../icons/icon.ico"
     ],
+    "publisher": "Pierre Pocquet-Assemien",
+    "homepage": "https://github.com/ppocass/plume",
+    "license": "MIT",
+    "category": "Utility",
+    "shortDescription": "Dictée locale et privée / local, private dictation",
+    "longDescription": "Plume prend la dictée à la voix, hors ligne : l'audio ne quitte jamais l'ordinateur.\nMoteur Parakeet (25 langues européennes, NVIDIA, licence CC-BY-4.0) exécuté sur le processeur.\n\nPlume takes dictation by voice, entirely offline: the audio never leaves the computer.\nPowered by Parakeet (25 European languages, NVIDIA, CC-BY-4.0 licence) on the CPU.",
     "linux": {
       "deb": {
+        "section": "utils",
+        "depends": [
+          "xdotool"
+        ],
+        "desktopTemplate": "../packaging/plume.desktop",
         "files": {
-          "usr/bin/": "vendor/sherpa/"
+          "usr/lib/plume/": "vendor/sherpa/"
         }
       }
     }

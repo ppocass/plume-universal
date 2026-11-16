@@ -114,3 +114,100 @@ scp zcomputer-ts:/home/ppocass/plume-tauri-src/app/docs/shots/*.png docs/shots/
 Les variables utiles : `PLUME_BIN` (chemin du binaire), `PLUME_SHOTS` (dossier de
 sortie), `PLUME_SHOW` (fenêtre montrée au démarrage : `main`, `onboarding`,
 `pill`) et `PLUME_THEME` (`dark` ou `light`), lues par le binaire.
+
+## Installation d'un utilisateur : le paquet `.deb`
+
+> Les deux sections précédentes datent d'avant le paquet installable : les
+> `.so` vont désormais dans `/usr/lib/plume` (plus dans `/usr/bin`) et les
+> commandes ci-dessous utilisent le tag `pk` (volume `plume-target-pk`).
+
+Le paquet est fait pour Linux Mint 22 / Ubuntu 24.04 (« install » en un
+double-clic, ou `sudo apt install ./plume_0.1.0_amd64.deb`). Il s'appelle
+`plume_0.1.0_amd64.deb` : `Package: plume`, `Section: utils`,
+`Maintainer: Pierre Pocquet-Assemien`, `Homepage:
+https://github.com/ppocass/plume`, description FR puis EN.
+
+### Ce qu'il installe
+
+- `/usr/bin/plume` — le binaire, seul.
+- `/usr/lib/plume/lib*.so` — `libsherpa-onnx-c-api.so`,
+  `libsherpa-onnx-cxx-api.so`, `libonnxruntime.so`. Ils ne sont **plus** dans
+  `/usr/bin` : le binaire porte un `RUNPATH` `$ORIGIN:/usr/lib/plume`
+  (`build.rs` de `plume-app` ajoute `/usr/lib/plume` au `$ORIGIN` global de
+  `.cargo/config.toml`), donc rien à mettre dans `LD_LIBRARY_PATH`.
+- `/usr/share/applications/plume.desktop` — `Name=Plume`,
+  `Categories=Utility;Accessibility;`, `StartupWMClass=plume`, `Icon=plume`.
+  Le modèle est `crates/plume-app/packaging/plume.desktop`.
+- `/usr/share/icons/hicolor/*/apps/plume.png` — les icônes du bundle.
+- `Depends: libayatana-appindicator3-1, libwebkit2gtk-4.1-0, libgtk-3-0,
+  xdotool` (les trois premiers sont ajoutés par le CLI Tauri d'après
+  `--features tray-icon` et la config ; `xdotool` vient de `tauri.conf.json`).
+
+### Le fabriquer
+
+```sh
+# Les .so de sherpa-onnx doivent être présents dans vendor/sherpa avant le
+# bundle (le dossier est vide dans le dépôt).
+build/remote.sh pk 'mkdir -p crates/plume-app/src-tauri/vendor/sherpa && \
+  cp -a /sherpa/lib/*.so* crates/plume-app/src-tauri/vendor/sherpa/ && \
+  cd crates/plume-app && cargo tauri build --bundles deb'
+```
+
+Le `.deb` sort dans `/src/target-linux/release/bundle/deb/` (volume Docker
+`plume-target-pk`). Le profil `release` est celui de `cargo tauri build`.
+
+### Le tester sur une installation neuve
+
+`tests/install_deb.sh` tourne **sur le serveur**, pas dans l'image de build : il
+lance `ubuntu:24.04` et `ubuntu:22.04` nus, installe le `.deb` avec `apt`, puis
+vérifie `plume --version`, `plume --check`, `ldd /usr/bin/plume` (aucune
+bibliothèque manquante) et `dpkg -L plume`.
+
+```sh
+ssh zcomputer-ts 'cd /home/ppocass/plume-tauri-src/pk && sh tests/install_deb.sh plume-target-pk'
+```
+
+Résultat attendu : **Ubuntu 24.04 OK** ; Ubuntu 22.04 s'installe mais le
+chargeur réclame `GLIBC_2.39` (« weak version »), donc **non supporté**. Le
+minimum est Linux Mint 22 / Ubuntu 24.04, comme le disent les deux README.
+
+### `plume --version` et `plume --check`
+
+Deux options de diagnostic, traitées avant l'ouverture de Tauri (donc sans
+écran) :
+
+```sh
+plume --version     # Plume 0.1.0
+plume --check       # session, xdotool, micros, modèle, dossiers — sortie 0
+```
+
+### Démarrage automatique
+
+`tauri-plugin-autostart` écrit `~/.config/autostart/plume.desktop` quand
+`launch_at_login` est vrai (défaut). Vérifié sous Xvfb avec un `HOME` neuf :
+le fichier apparaît, avec `Exec=/usr/bin/plume` une fois le `.deb` installé.
+
+### AppImage : abandonné
+
+`cargo tauri build --bundles appimage` **fonctionne** (≈ 100 Mo), mais
+linuxdeploy n'embarque volontairement pas les bibliothèques de base du bureau
+(`libX11`, `libEGL`, `libgbm`, `libfontconfig`, `libasound`…). Dans un
+`ubuntu:24.04` nu, l'AppImage ne démarre donc pas :
+
+```
+plume: error while loading shared libraries: libX11.so.6: cannot open shared object file
+```
+
+et il faut installer une pile graphique complète pour que `--version` réponde.
+Embarquer `libEGL`/`libgbm` à la main casserait les pilotes de la machine
+hôte. L'AppImage est donc **retiré** (pas de `linux.appimage` dans
+`tauri.conf.json`, pas de cible appimage dans le workflow) : le `.deb` est le
+seul format livré.
+
+### Windows : préparé, jamais exécuté
+
+`.github/workflows/release.yml` construit aussi un MSI et un NSIS
+(`windows-latest`), avec les DLL de
+`sherpa-onnx-v2.0.1-win-x64-shared-MT-Release-lib.tar.bz2`. Aucune exécution
+Windows n'a eu lieu : c'est une préparation, pas une preuve. À dire tel quel
+dans les README.

@@ -14,7 +14,16 @@ use tauri::{AppHandle, Emitter, Manager};
 
 use state::AppState;
 
+/// La ligne de version, telle que `plume --version` l'imprime.
+const VERSION_LINE: &str = concat!("Plume ", env!("CARGO_PKG_VERSION"));
+
 fn main() {
+    // `--version` / `--check` : diagnostics en ligne de commande, sans fenêtre
+    // ni écran (ils répondent avant que Tauri n'ouvre quoi que ce soit).
+    if let Some(code) = cli() {
+        std::process::exit(code);
+    }
+
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
     let mut builder = tauri::Builder::default();
@@ -122,6 +131,69 @@ fn main() {
         ])
         .run(tauri::generate_context!())
         .expect("Plume n'a pas pu démarrer");
+}
+
+/// `plume --version` et `plume --check` : le seul endroit où l'app parle sans
+/// fenêtre. Renvoie le code de sortie quand un des deux drapeaux est reconnu.
+fn cli() -> Option<i32> {
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    match args.first().map(String::as_str) {
+        Some("--version") | Some("-V") => {
+            println!("{VERSION_LINE}");
+            Some(0)
+        }
+        Some("--check") => {
+            print!("{}", check_report());
+            Some(0)
+        }
+        _ => None,
+    }
+}
+
+/// Le diagnostic de `plume --check` : type de session, outil de collage,
+/// micros, modèle installé, dossiers de données. Toujours de sortie 0.
+fn check_report() -> String {
+    let check = extra::system_check();
+    let prefs = plume_core::store::Prefs::load();
+    let model = models::model(&prefs.model);
+    let model_state = match model {
+        Some(def) if models::is_installed(def) => format!("{} installed", def.id),
+        Some(def) => format!("{} missing ({})", def.id, models::model_dir(def.id).display()),
+        None => format!("{} unknown", prefs.model),
+    };
+    let settings = plume_core::store::paths::settings_dir();
+    let data = plume_core::store::paths::data_dir();
+    let mut out = String::new();
+    out.push_str(&format!("{VERSION_LINE}\n"));
+    out.push_str(&format!("session: {}\n", check.session_type));
+    out.push_str(&format!(
+        "xdotool: {}\n",
+        match which("xdotool") {
+            Some(path) => path.display().to_string(),
+            None => "not found".to_string(),
+        }
+    ));
+    out.push_str(&format!(
+        "paste tool: {}\n",
+        if check.paste_tool {
+            check.paste_tool_name
+        } else {
+            "none"
+        }
+    ));
+    out.push_str(&format!("microphones: {}\n", check.mic_count));
+    out.push_str(&format!("model: {model_state}\n"));
+    out.push_str(&format!("settings dir: {}\n", settings.display()));
+    out.push_str(&format!("data dir: {}\n", data.display()));
+    out
+}
+
+/// Le binaire dans le `PATH`, comme le `which` du shell.
+fn which(name: &str) -> Option<std::path::PathBuf> {
+    let path = std::env::var_os("PATH")?;
+    std::env::split_paths(&path)
+        .map(|folder| folder.join(name))
+        .find(|candidate| candidate.is_file())
 }
 
 /// `PLUME_SHOW=main` / `onboarding` / `pill` : la fenêtre à montrer au
@@ -237,5 +309,31 @@ mod tests {
         assert_eq!(show_target(Some("pill")), Some("pill"));
         assert_eq!(show_target(Some("nawak")), None);
         assert_eq!(show_target(None), None);
+    }
+
+    /// `plume --version` imprime « Plume 0.1.0 » (la version du workspace).
+    #[test]
+    fn la_ligne_de_version_est_plume_0_1_0() {
+        assert_eq!(VERSION_LINE, "Plume 0.1.0");
+    }
+
+    /// `plume --check` sort les cinq rubriques attendues, sur une ligne chacune.
+    #[test]
+    fn le_diagnostic_liste_les_cinq_rubriques() {
+        let report = check_report();
+        for key in [
+            "session:",
+            "xdotool:",
+            "microphones:",
+            "model:",
+            "settings dir:",
+            "data dir:",
+        ] {
+            assert!(
+                report.lines().any(|line| line.starts_with(key)),
+                "rubrique absente : {key}\n{report}"
+            );
+        }
+        assert!(report.starts_with("Plume 0.1.0\n"));
     }
 }

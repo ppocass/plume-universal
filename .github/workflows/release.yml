@@ -1,0 +1,97 @@
+name: release
+
+# Sur un tag v* : construit le .deb (Ubuntu 24.04 et 22.04) et les installeurs
+# Windows (MSI + NSIS), puis les dépose dans une release BROUILLON. Rien n'est
+# publié automatiquement : il faut ouvrir la release sur GitHub et la publier.
+#
+# Windows n'a JAMAIS été exécuté : voir README.md / README.fr.md. Ce job est
+# fourni pour la première tentative, pas comme une preuve que ça marche.
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: ubuntu-24.04
+            bundles: deb
+            asset_pattern: ""
+          - platform: ubuntu-22.04
+            bundles: deb
+            asset_pattern: "plume_[version]_[arch]_ubuntu-22.04.[ext]"
+          - platform: windows-latest
+            bundles: msi,nsis
+            asset_pattern: ""
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installer Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Dépendances Linux (webkit/GTK/appindicator)
+        if: startsWith(matrix.platform, 'ubuntu')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev \
+            librsvg2-dev patchelf libxdo-dev libasound2-dev libssl-dev \
+            build-essential cmake clang libclang-dev pkg-config
+
+      - name: Télécharger sherpa-onnx 2.0.1 (libs partagées Linux)
+        if: startsWith(matrix.platform, 'ubuntu')
+        run: |
+          set -eu
+          curl -fsSL -o /tmp/sherpa.tar.bz2 \
+            https://github.com/k2-fsa/sherpa-onnx/releases/download/v2.0.1/sherpa-onnx-v2.0.1-linux-x64-shared-lib.tar.bz2
+          mkdir -p "$HOME/sherpa" && tar -xjf /tmp/sherpa.tar.bz2 -C "$HOME/sherpa"
+          LIB_DIR=$(dirname "$(find "$HOME/sherpa" -name 'libonnxruntime.so' | head -n 1)")
+          echo "SHERPA_ONNX_LIB_DIR=$LIB_DIR" >> "$GITHUB_ENV"
+          # Le .deb range les .so dans /usr/lib/plume : le bundler les prend ici.
+          mkdir -p crates/plume-app/src-tauri/vendor/sherpa
+          cp -a "$LIB_DIR"/*.so* crates/plume-app/src-tauri/vendor/sherpa/
+          ls -l "$LIB_DIR"
+
+      - name: Télécharger sherpa-onnx 2.0.1 (libs partagées Windows x64)
+        if: matrix.platform == 'windows-latest'
+        shell: bash
+        run: |
+          set -eu
+          # Nom exact de l'archive win-x64 partagée de la release v2.0.1
+          # (relevé avec `gh api repos/k2-fsa/sherpa-onnx/releases/tags/v2.0.1`),
+          # le même que celui que le crate sherpa-onnx-sys attend.
+          curl -fsSL -o "$RUNNER_TEMP/sherpa.tar.bz2" \
+            https://github.com/k2-fsa/sherpa-onnx/releases/download/v2.0.1/sherpa-onnx-v2.0.1-win-x64-shared-MT-Release-lib.tar.bz2
+          mkdir -p "$HOME/sherpa" && tar -xjf "$RUNNER_TEMP/sherpa.tar.bz2" -C "$HOME/sherpa"
+          LIB_DIR=$(dirname "$(find "$HOME/sherpa" -iname 'sherpa-onnx-c-api.dll' | head -n 1)")
+          # Le compilateur Windows attend un chemin natif (C:\...), pas /c/...
+          echo "SHERPA_ONNX_LIB_DIR=$(cygpath -w "$LIB_DIR")" >> "$GITHUB_ENV"
+          ls -l "$LIB_DIR"
+
+      - name: Construire et déposer dans la release brouillon
+        uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "Plume v__VERSION__"
+          releaseBody: |
+            Application de dictée locale. Linux Mint 22 / Ubuntu 24.04 minimum
+            pour le .deb construit sur Ubuntu 24.04.
+
+            Non testé : microphone réel sur machine physique, Wayland, Windows.
+            Windows : première construction, jamais exécutée.
+          releaseDraft: true
+          prerelease: false
+          args: --bundles ${{ matrix.bundles }}
+          releaseAssetNamePattern: ${{ matrix.asset_pattern }}

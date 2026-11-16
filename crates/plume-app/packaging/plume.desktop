@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Plume
+GenericName=Dictation
+GenericName[fr]=Dictée
+Comment={{comment}}
+Exec={{exec}}
+Icon={{icon}}
+Terminal=false
+Categories=Utility;Accessibility;
+Keywords=dictation;dictée;speech;voice;transcription;offline;
+StartupNotify=false
+StartupWMClass=plume
