@@ -211,3 +211,8 @@ seul format livré.
 `sherpa-onnx-v2.0.1-win-x64-shared-MT-Release-lib.tar.bz2`. Aucune exécution
 Windows n'a eu lieu : c'est une préparation, pas une preuve. À dire tel quel
 dans les README.
+
+## Attention au disque de zcomputer
+Chaque `build/remote.sh <tag>` crée un volume Docker `plume-target-<tag>` (2 à 8 Go). Le 16/11/2026, 17 volumes ont
+rempli le disque à 99 %. Après usage : `ssh zcomputer-ts 'docker volume rm plume-target-<tag>'`. Garder un seul tag
+pour le travail courant.
