@@ -1,0 +1,3 @@
+# Les libs sherpa-onnx (.so) sont copiées à côté du binaire : on dit au chargeur Linux de chercher là.
+[target.x86_64-unknown-linux-gnu]
+rustflags = ["-C", "link-args=-Wl,-rpath,$ORIGIN"]

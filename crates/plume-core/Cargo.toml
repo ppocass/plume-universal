@@ -14,6 +14,16 @@ log = "0.4"
 # --- audio (micro, WAV) ---
 hound = "3.5"
 # --- engine ---
+sherpa-onnx = { version = "2.0.1", default-features = false, features = ["shared"] }
 # --- text ---
 regex = "1"
+ureq = { version = "2", features = ["json"] }
+url = "2"
 # --- input (touche, collage) ---
+cpal = "0.15"
+arboard = "3"
+rdev = { git = "https://github.com/rustdesk-org/rdev" }
+
+# Windows : le Ctrl+V du collage (SendInput). Rien à compiler sous Linux.
+[target.'cfg(windows)'.dependencies]
+enigo = "0.6"
