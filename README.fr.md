@@ -1,5 +1,11 @@
 # Plume
 
+> **Version de test (0.1.0).** Installée et lancée sur un Ubuntu 24.04 vierge, testée de bout en bout dans un
+> écran virtuel (voix rejouée, texte collé). **Pas encore essayée avec un vrai micro sur un vrai PC**, ni sous
+> Wayland, ni sous Windows : vos retours sont les bienvenus dans les *issues*.
+> Sur Mac, la version native est [Plume](https://github.com/ppocass/plume). Cette version-ci remplace la bêta
+> [plume-linux](https://github.com/ppocass/plume-linux).
+
 Plume est une application de dictée locale pour Linux et Windows. On parle, le
 texte s'écrit dans la fenêtre qui a le focus, et l'audio ne quitte jamais
 l'ordinateur : la reconnaissance vocale tourne sur le processeur, hors ligne.

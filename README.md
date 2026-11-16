@@ -1,5 +1,11 @@
 # Plume
 
+> **Test release (0.1.0).** Installed and launched on a fresh Ubuntu 24.04, tested end to end in a virtual
+> display (replayed voice, pasted text). **Not yet tried with a real microphone on a real PC**, nor on Wayland or
+> Windows: feedback is welcome in the issues.
+> On Mac, the native version is [Plume](https://github.com/ppocass/plume). This version replaces the
+> [plume-linux](https://github.com/ppocass/plume-linux) beta.
+
 Plume is a local dictation app for Linux and Windows. You talk, the text is
 typed into whatever window has the focus, and the audio never leaves the
 computer: speech recognition runs on the CPU, offline.
