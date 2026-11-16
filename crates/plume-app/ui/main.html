@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Plume</title>
+    <link rel="stylesheet" href="./css/tokens.css" />
+    <link rel="stylesheet" href="./css/shell.css" />
+    <script type="module" src="./js/main.js"></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <nav class="sidebar-list" aria-label="Plume">
+          <button type="button" class="sidebar-row is-selected" data-page="home" aria-current="page">
+            <span class="sidebar-icon" data-icon="audio-waveform"></span>
+            <span class="sidebar-label" data-i18n="home">Home</span>
+          </button>
+          <button type="button" class="sidebar-row" data-page="history">
+            <span class="sidebar-icon" data-icon="history"></span>
+            <span class="sidebar-label" data-i18n="history">History</span>
+            <span class="sidebar-badge" data-badge="history"></span>
+          </button>
+          <button type="button" class="sidebar-row" data-page="vocabulary">
+            <span class="sidebar-icon" data-icon="book-a"></span>
+            <span class="sidebar-label" data-i18n="vocabulary">Vocabulary</span>
+          </button>
+          <button type="button" class="sidebar-row" data-page="leet">
+            <span class="sidebar-icon" data-icon="case-sensitive"></span>
+            <span class="sidebar-label">1337</span>
+          </button>
+          <button type="button" class="sidebar-row" data-page="models">
+            <span class="sidebar-icon" data-icon="cpu"></span>
+            <span class="sidebar-label" data-i18n="models">Models</span>
+          </button>
+          <button type="button" class="sidebar-row" data-page="settings">
+            <span class="sidebar-icon" data-icon="settings"></span>
+            <span class="sidebar-label" data-i18n="settings_2">Settings</span>
+          </button>
+        </nav>
+        <footer class="sidebar-footer" data-i18n-title="engine">
+          <span class="engine-dot" data-state="loading"></span>
+          <span class="engine-text">Parakeet…</span>
+        </footer>
+      </aside>
+      <main class="content" id="content" tabindex="-1"></main>
+    </div>
+  </body>
+</html>

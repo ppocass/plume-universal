@@ -1,0 +1,417 @@
+/* ==========================================================================
+   Plume — coquille : fenêtre principale, barre latérale, pages.
+   Les valeurs viennent de docs/design-spec.md (voir css/tokens.css).
+   ========================================================================== */
+
+@font-face {
+  font-family: "Inter";
+  src: url("../fonts/InterVariable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--window-bg);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-feature-settings: var(--feature-settings);
+  font-size: var(--text-body);
+  line-height: var(--text-body-line);
+  font-weight: var(--text-body-weight);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  cursor: default;
+  overflow: hidden;
+}
+
+/* Règle absolue du propriétaire : aucun anneau de focus, jamais. */
+:focus,
+:focus-visible,
+:focus-within {
+  outline: none !important;
+}
+
+button,
+input,
+textarea,
+select,
+a {
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  font-family: inherit;
+  cursor: default;
+  user-select: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* --- Fenêtre principale ------------------------------------------------- */
+
+.app-shell {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  background: var(--window-bg);
+}
+
+/* --- Barre latérale (§2.1) ---------------------------------------------- */
+
+.sidebar {
+  flex: 0 0 var(--sidebar-width);
+  width: var(--sidebar-width);
+  min-width: var(--sidebar-min);
+  max-width: var(--sidebar-max);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--sidebar-bg-fallback);
+}
+
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .sidebar {
+    background: var(--sidebar-bg);
+    -webkit-backdrop-filter: var(--sidebar-filter);
+    backdrop-filter: var(--sidebar-filter);
+  }
+}
+
+.sidebar-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  /* Le List macOS a déjà 8 pt de retrait ; listRowInsets ajoute 10 pt au
+     contenu. La pilule de sélection, elle, est à 8 pt du bord. */
+  padding: var(--space-10) 0 0;
+}
+
+.sidebar-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  width: 100%;
+  margin: var(--space-1) 0;
+  padding: var(--space-5) calc(var(--space-10) + var(--space-8));
+  border: 0;
+  background: none;
+  color: var(--text-primary);
+  font-size: var(--text-sidebar-row);
+  line-height: var(--text-body-line);
+  font-weight: var(--text-body-weight);
+  text-align: left;
+}
+
+.sidebar-row::before {
+  content: "";
+  position: absolute;
+  inset: var(--space-2) var(--space-8);
+  border-radius: var(--radius-row);
+  background: transparent;
+  pointer-events: none;
+}
+
+.sidebar-row.is-selected {
+  font-weight: 600;
+}
+
+.sidebar-row.is-selected::before {
+  background: var(--selection);
+}
+
+.sidebar-row > * {
+  position: relative;
+  z-index: 1;
+}
+
+.sidebar-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  color: var(--accent);
+}
+
+.sidebar-icon svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+.sidebar-label {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.sidebar-badge {
+  margin-left: auto;
+  min-width: 0;
+  font-size: var(--text-badge);
+  line-height: var(--text-subheadline-line);
+  font-weight: var(--text-badge-weight);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+
+.sidebar-badge svg {
+  display: block;
+  width: 13px;
+  height: 13px;
+  color: var(--orange);
+}
+
+/* Pied : l'état du moteur (§2.1). */
+.sidebar-footer {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-7);
+  padding: var(--space-11) var(--space-16);
+  font-size: var(--text-footer);
+  line-height: var(--text-body-line);
+  color: var(--text-secondary);
+  /* macOS 26 : bande solide de la teinte de la barre latérale (§2.1). */
+  background: var(--sidebar-bg-fallback);
+}
+
+.sidebar-footer::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: var(--space-12);
+  right: var(--space-12);
+  height: 1px;
+  background: var(--separator);
+}
+
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .sidebar-footer {
+    background: var(--sidebar-bg);
+    -webkit-backdrop-filter: var(--sidebar-filter);
+    backdrop-filter: var(--sidebar-filter);
+  }
+}
+
+.engine-dot {
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-capsule);
+  background: var(--done);
+}
+
+.engine-dot[data-state="idle"] {
+  background: var(--text-secondary);
+  opacity: 0.5;
+}
+
+.engine-dot[data-state="loading"] {
+  background: var(--think-tint);
+}
+
+.engine-dot[data-state="error"] {
+  background: var(--red);
+}
+
+.engine-text {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* --- Contenu ------------------------------------------------------------ */
+
+.content {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-y: auto;
+  background: var(--window-bg);
+}
+
+.page {
+  max-width: var(--page-max-width);
+  margin: 0 auto;
+  padding: var(--page-padding);
+}
+
+/* .largeTitle : 26 pt regular, interligne 32 (§0.4). */
+.large-title {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: var(--text-large-title);
+  line-height: var(--text-large-title-line);
+  font-weight: var(--text-large-title-weight);
+}
+
+.title {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: var(--text-title);
+  line-height: var(--text-title-line);
+  font-weight: var(--text-title-weight);
+}
+
+.headline {
+  margin: 0;
+  font-size: var(--text-headline);
+  line-height: var(--text-headline-line);
+  font-weight: var(--text-headline-weight);
+}
+
+.body {
+  font-size: var(--text-body);
+  line-height: var(--text-body-line);
+  font-weight: var(--text-body-weight);
+}
+
+.callout {
+  font-size: var(--text-callout);
+  line-height: var(--text-callout-line);
+  font-weight: var(--text-callout-weight);
+}
+
+.caption {
+  font-size: var(--text-caption);
+  line-height: var(--text-caption-line);
+  font-weight: var(--text-caption-weight);
+}
+
+.secondary {
+  color: var(--text-secondary);
+}
+
+/* --- Boutons (§1.2.6) --------------------------------------------------- */
+
+.button-prominent {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  padding: 0 var(--space-14);
+  border: 0;
+  border-radius: var(--radius-capsule);
+  background: var(--button-prominent-fill);
+  color: var(--button-prominent-label);
+  font-size: var(--text-body);
+  line-height: var(--text-body-line);
+  font-weight: 500;
+}
+
+.button-bordered {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  padding: 0 var(--space-14);
+  border: 1px solid var(--button-bordered-border);
+  border-radius: var(--radius-chip);
+  background: var(--button-bordered-fill);
+  color: var(--button-bordered-label);
+  font-size: var(--text-body);
+  line-height: var(--text-body-line);
+}
+
+.button-plain {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--text-primary);
+  font-size: var(--text-body);
+  line-height: var(--text-body-line);
+}
+
+/* --- Assistant (§2.8) --------------------------------------------------- */
+
+.onboarding {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  padding: 30px var(--space-40) var(--space-10);
+  background: var(--window-bg);
+  text-align: center;
+}
+
+.onboarding-tile {
+  flex: 0 0 auto;
+  width: 88px;
+  height: 88px;
+  border-radius: var(--radius-tile);
+  box-shadow: var(--shadow-tile);
+  display: block;
+}
+
+.onboarding-title {
+  margin: var(--space-22) 0 0;
+  font-size: var(--text-brand);
+  line-height: var(--text-large-title-line);
+  font-weight: var(--text-brand-weight);
+  color: var(--text-primary);
+}
+
+.onboarding-subtitle {
+  margin: var(--space-8) 0 0;
+  font-size: var(--text-body);
+  line-height: var(--text-body-line);
+  color: var(--text-secondary);
+}
+
+.onboarding-content {
+  margin-top: var(--space-28);
+}
+
+.onboarding-footer {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  width: 100%;
+  padding: var(--space-22) var(--space-28) 0;
+}
+
+.onboarding-footer .button-prominent,
+.onboarding-footer .button-plain {
+  min-width: 110px;
+}
+
+/* « Nouveautés » : fenêtre créée à la demande, même fond que l'app. */
+.whatsnew {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: var(--space-40);
+  background: var(--window-bg);
+}
+
+.whatsnew .large-title {
+  margin-bottom: var(--space-8);
+}

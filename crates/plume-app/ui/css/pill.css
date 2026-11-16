@@ -1,0 +1,117 @@
+/* ==========================================================================
+   Plume — la pastille (placeholder de cette tâche).
+   Surface, trait et ombre de §3.3 ; fenêtre transparente de 320 × 90.
+   ========================================================================== */
+
+@font-face {
+  font-family: "Inter";
+  src: url("../fonts/InterVariable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: transparent;
+  color: var(--pill-text);
+  font-family: var(--font-sans);
+  font-feature-settings: var(--feature-settings);
+  font-size: var(--text-pill-label);
+  line-height: var(--text-body-line);
+  overflow: hidden;
+  cursor: default;
+  user-select: none;
+}
+
+:focus,
+:focus-visible,
+:focus-within {
+  outline: none !important;
+}
+
+.pill-stage {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+}
+
+/* En haut : la capsule est à 43 pt du bord supérieur (§3.1, topInset). */
+.pill-stage[data-style="top"] {
+  align-items: flex-start;
+  padding-top: var(--pill-slot-top);
+}
+
+/* En bas : 6 pt au-dessus du bord de la fenêtre, elle-même à 14 pt du bas. */
+.pill-stage[data-style="bottom"] {
+  align-items: flex-end;
+  padding-bottom: var(--pill-slot-bottom);
+}
+
+.pill {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 116px;
+  height: 34px;
+  padding: var(--space-8) var(--space-12);
+  border-radius: var(--radius-capsule);
+  background: var(--pill-fill-fallback);
+  box-shadow: var(--shadow-pill), var(--shadow-pill-stroke);
+  color: var(--pill-text);
+  font-size: var(--text-pill-label);
+  line-height: var(--text-body-line);
+  font-weight: var(--text-pill-label-weight);
+  white-space: nowrap;
+}
+
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .pill {
+    background:
+      linear-gradient(var(--pill-overlay), var(--pill-overlay)),
+      var(--pill-fill);
+    -webkit-backdrop-filter: var(--pill-filter);
+    backdrop-filter: var(--pill-filter);
+  }
+}
+
+/* Le trait intérieur de 0,5 pt, posé à 0,5 pt du bord (§3.3). */
+.pill::after {
+  content: "";
+  position: absolute;
+  inset: 0.5px;
+  border-radius: inherit;
+  box-shadow: var(--shadow-pill-hairline);
+  pointer-events: none;
+}
+
+/* Entrée : glisse depuis le haut en 340 ms, ease-out-cubic (§3.10). */
+@keyframes pill-in {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.pill-stage[data-style="top"] .pill {
+  animation: pill-in var(--motion-pill-in);
+}
+
+.pill-stage[data-style="bottom"] .pill {
+  animation: pill-in var(--motion-spring);
+}

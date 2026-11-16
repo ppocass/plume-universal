@@ -65,3 +65,52 @@ Prévoir ≈ 3,9 Go pour l'image (une seule fois) et ≈ 460 Mo pour le volume d
 cache Cargo, qui grossit avec les dépendances des projets compilés. Le dossier
 `target-linux/` d'un projet reste sur l'hôte : ≈ 1,1 Go pour un projet Tauri 2
 simple après un build release.
+
+## L'application Plume (crate `plume-app`, Tauri 2)
+
+L'app vit dans `crates/plume-app` : le code Rust et `tauri.conf.json` dans
+`crates/plume-app/src-tauri/` (disposition Tauri standard), le front en
+HTML/CSS/JS natif dans `crates/plume-app/ui/` (aucun npm, aucun bundler).
+`build/remote.sh` synchronise le projet, puis la commande tourne dans l'image
+`plume-tauri-build:24.04` (cwd `/src`).
+
+### Fabriquer le `.deb`
+
+```sh
+# 1. Les images de l'app (tuile dégradée + plume) et les icônes du bundle.
+build/remote.sh app 'cd crates/plume-app && sh icons/generate.sh'
+
+# 2. Le paquet Debian (binaire release + ressources + libs sherpa-onnx).
+#    Les .so (libsherpa-onnx + libonnxruntime) sont copiés dans vendor/sherpa/
+#    avant la compilation : le bundle les installe dans /usr/bin, à côté du
+#    binaire, et le rpath $ORIGIN les fait trouver sans LD_LIBRARY_PATH.
+build/remote.sh app 'mkdir -p crates/plume-app/src-tauri/vendor/sherpa && cp -a /sherpa/lib/*.so* crates/plume-app/src-tauri/vendor/sherpa/ && cd crates/plume-app && cargo tauri build --bundles deb'
+```
+
+Le `.deb` atterrit dans `target-linux/release/bundle/deb/` dans le conteneur
+(`CARGO_TARGET_DIR=/src/target-linux`) : c'est le volume Docker
+`plume-target-app`, pas un dossier du projet sur l'hôte. Vérifier son contenu :
+
+```sh
+ssh zcomputer-ts 'docker run --rm -v plume-target-app:/t alpine ls /t/release/bundle/deb/'
+ssh zcomputer-ts 'docker run --rm -v plume-target-app:/t plume-tauri-build:24.04 \
+  dpkg-deb -c /t/release/bundle/deb/*.deb | grep -E "usr/bin/(plume|libsherpa|libonnxruntime)"'
+```
+
+### Les captures de la coquille (Xvfb)
+
+`tests/ui_shot.sh` tourne **dans le conteneur** : Xvfb `:99` en 1280×800,
+session D-Bus (`dbus-run-session`), binaire release, 6 s par capture, puis
+`import -window root`. Trois images : `main` (clair), `onboarding`, `main-dark`
+(`PLUME_THEME=dark`). Le script sort en 1 si une image manque ou fait moins de
+20 Ko.
+
+```sh
+build/remote.sh app 'sh tests/ui_shot.sh'
+mkdir -p docs/shots
+scp zcomputer-ts:/home/ppocass/plume-tauri-src/app/docs/shots/*.png docs/shots/
+```
+
+Les variables utiles : `PLUME_BIN` (chemin du binaire), `PLUME_SHOTS` (dossier de
+sortie), `PLUME_SHOW` (fenêtre montrée au démarrage : `main`, `onboarding`,
+`pill`) et `PLUME_THEME` (`dark` ou `light`), lues par le binaire.
