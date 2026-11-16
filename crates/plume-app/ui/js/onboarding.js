@@ -31,8 +31,14 @@ const STEP_ICONS = {
   cleanup: "sparkles",
 };
 
-// Le ressort de §2.8 : response 0,42 / damping 0,88.
-const SPRING = "cubic-bezier(0.34, 1.14, 0.64, 1)";
+// Le ressort de §2.8 (response 0,42 / damping 0,88) vient du jeton
+// `--motion-page-spring`, pour que le mouvement reste défini à un seul endroit.
+function pageSpring() {
+  const value = getComputedStyle(document.documentElement)
+    .getPropertyValue("--motion-page-spring")
+    .trim();
+  return value.includes("cubic-bezier") ? value.split(" ").pop() : "ease-out";
+}
 
 const DEMO_PREFS = {
   appLanguage: "en",
@@ -892,15 +898,22 @@ function contentCleanup(container) {
 
   const page = keyPage(state.polish.service);
   if (page) {
-    section.append(
-      h("a", {
-        class: "form-link",
-        href: page.url,
-        target: "_blank",
-        rel: "noreferrer",
-        text: t("create_a_service_key", { service: page.label }),
-      }),
-    );
+    const link = h("a", {
+      class: "form-link",
+      href: page.url,
+      rel: "noreferrer",
+      text: t("create_a_service_key", { service: page.label }),
+    });
+    // Le navigateur par défaut, jamais la fenêtre de l'assistant ; si le
+    // plugin refuse, l'adresse part dans le presse-papiers.
+    link.addEventListener("click", async (event) => {
+      event.preventDefault();
+      const opened = await openExternal(page.url);
+      if (!opened) {
+        await copyText(page.url);
+      }
+    });
+    section.append(link);
   }
 
   form.append(section);
@@ -1016,6 +1029,25 @@ async function commitCleanup() {
     polishModel: state.polish.model,
     polishApiKey: state.polish.key,
   });
+}
+
+/** Ouvre une adresse dans le navigateur par défaut (`opener` de Tauri). */
+async function openExternal(url) {
+  if (!hasTauri()) {
+    return false;
+  }
+  try {
+    const opener = window.__TAURI__.opener ?? window.__TAURI_PLUGIN_OPENER__;
+    if (opener?.openUrl) {
+      await opener.openUrl(url);
+    } else {
+      await window.__TAURI__.core.invoke("plugin:opener|open_url", { url });
+    }
+    return true;
+  } catch (error) {
+    console.warn("ouverture du lien :", error);
+    return false;
+  }
 }
 
 async function copyText(text) {
@@ -1254,7 +1286,7 @@ async function renderPage(animate) {
   const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
   if (animate && previous && !reduced) {
     const direction = state.forward ? 1 : -1;
-    const timing = { duration: 420, easing: SPRING, fill: "both" };
+    const timing = { duration: 420, easing: pageSpring(), fill: "both" };
     previous.animate(
       [
         { transform: "translateX(0)", opacity: 1 },
@@ -1292,7 +1324,7 @@ async function commitStep(name) {
       } catch (error) {
         console.warn("modèle :", error);
       }
-      if (model && !model.installed && !model.downloading) {
+      if (model && !model.installed && !model.downloading && state.downloading !== id) {
         try {
           await invoke("download_model", { id });
           state.downloading = id;

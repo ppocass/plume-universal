@@ -1,6 +1,8 @@
 /* ==========================================================================
-   Plume — la pastille (placeholder de cette tâche).
-   Surface, trait et ombre de §3.3 ; fenêtre transparente de 320 × 90.
+   Plume — la pastille (spec §3, `PillPanel.swift`).
+   La fenêtre est transparente : seule la carte est dessinée, avec la marge que
+   réclame son ombre (§3.1). Autour de la carte, le bureau se voit.
+   1 px CSS = 1 pt.
    ========================================================================== */
 
 @font-face {
@@ -20,6 +22,8 @@
 html,
 body {
   height: 100%;
+  /* Transparence totale : le bureau doit se voir autour de la carte. */
+  background: transparent;
 }
 
 body {
@@ -33,53 +37,57 @@ body {
   overflow: hidden;
   cursor: default;
   user-select: none;
+  -webkit-user-select: none;
 }
 
+/* Aucun anneau de focus, jamais (règle absolue de la spec). */
 :focus,
 :focus-visible,
 :focus-within {
   outline: none !important;
 }
 
+/* --- L'emplacement --------------------------------------------------------
+   En haut : la carte est à 43 pt du bord (37 pt de barre des menus + 6). En
+   bas : à 6 pt du bord de la fenêtre (§3.1, `topInset`, `padding(.bottom, 6)`). */
+
 .pill-stage {
   position: fixed;
   inset: 0;
   display: flex;
   justify-content: center;
+  /* La teinte d'écoute par défaut ; `data-listen` / `data-think` la remplacent
+     d'après les réglages (§1.2.3). */
+  --pill-accent: var(--listen-tint);
+  --pill-thinking: var(--think-tint);
 }
 
-/* En haut : la capsule est à 43 pt du bord supérieur (§3.1, topInset). */
 .pill-stage[data-style="top"] {
   align-items: flex-start;
-  padding-top: var(--pill-slot-top);
+  padding-top: 43px;
 }
 
-/* En bas : 6 pt au-dessus du bord de la fenêtre, elle-même à 14 pt du bas. */
 .pill-stage[data-style="bottom"] {
   align-items: flex-end;
-  padding-bottom: var(--pill-slot-bottom);
+  padding-bottom: 6px;
 }
 
-.pill {
+/* --- La carte -------------------------------------------------------------
+   Capsule pour la pastille, rectangle arrondi 16 pt pour le pop-up (§3.4).
+   Fond, trait et ombre de §3.3 : matière ultra-fine + voile + deux traits. */
+
+.pill-card {
   position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 116px;
-  height: 34px;
-  padding: var(--space-8) var(--space-12);
+  display: none;
+  flex-direction: column;
   border-radius: var(--radius-capsule);
   background: var(--pill-fill-fallback);
   box-shadow: var(--shadow-pill), var(--shadow-pill-stroke);
   color: var(--pill-text);
-  font-size: var(--text-pill-label);
-  line-height: var(--text-body-line);
-  font-weight: var(--text-pill-label-weight);
-  white-space: nowrap;
 }
 
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .pill {
+  .pill-card {
     background:
       linear-gradient(var(--pill-overlay), var(--pill-overlay)),
       var(--pill-fill);
@@ -88,8 +96,8 @@ body {
   }
 }
 
-/* Le trait intérieur de 0,5 pt, posé à 0,5 pt du bord (§3.3). */
-.pill::after {
+/* Le filet intérieur de 0,5 pt, posé à 0,5 pt du bord (§3.3). */
+.pill-card::after {
   content: "";
   position: absolute;
   inset: 0.5px;
@@ -98,20 +106,289 @@ body {
   pointer-events: none;
 }
 
-/* Entrée : glisse depuis le haut en 340 ms, ease-out-cubic (§3.10). */
-@keyframes pill-in {
-  from {
-    transform: translateY(-100%);
-  }
-  to {
-    transform: translateY(0);
-  }
+.pill-stage:not([data-phase="hidden"]) .pill-card {
+  display: flex;
 }
 
-.pill-stage[data-style="top"] .pill {
-  animation: pill-in var(--motion-pill-in);
+/* --- La pastille ordinaire (§3.5) -----------------------------------------
+   12 pt de marge, 8 pt de haut en bas, 8 pt entre les barres et le ✕.
+   13 × 3 + 12 × 2,5 = 69 pt de barres ; 69 + 8 + 15 + 24 = 116 ; 18 + 16 = 34. */
+
+.pill-row {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 8px 12px;
 }
 
-.pill-stage[data-style="bottom"] .pill {
-  animation: pill-in var(--motion-spring);
+.pill-stage[data-phase="recording"] .pill-row,
+.pill-stage[data-phase="processing"] .pill-row,
+.pill-stage[data-phase="pasted"] .pill-row,
+.pill-stage[data-phase="copied"] .pill-row,
+.pill-stage[data-phase="message"] .pill-row,
+.pill-stage[data-phase="error"] .pill-row {
+  display: flex;
+}
+
+/* Les barres : 69 × 22 pt (18 pt de cadre, une barre peut monter à 22 et
+   déborder visiblement, §3.6). */
+.pill-bars-wrap {
+  display: flex;
+  align-items: center;
+  width: 69px;
+  height: 18px;
+  flex: none;
+}
+
+.pill-bars {
+  display: block;
+  width: 69px;
+  height: 22px;
+  margin: -2px 0;
+  color: var(--pill-accent);
+}
+
+.pill-stage[data-phase="processing"] .pill-bars {
+  color: var(--pill-thinking);
+}
+
+/* Le ✕ d'annulation : cercle de 15 pt, glyphe de 7 pt gras, texte à 62 %
+   (§3.7). */
+.pill-cancel {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-capsule);
+  background: var(--pill-close-bg);
+  color: color-mix(in srgb, var(--pill-text) 62%, transparent);
+  flex: none;
+  cursor: default;
+}
+
+.pill-stage[data-phase="recording"] .pill-cancel {
+  display: flex;
+}
+
+.pill-cancel .pill-glyph {
+  width: 7px;
+  height: 7px;
+}
+
+/* Le ✓ « collé » : 13 pt gras dans --done, cadre de 30 × 18 (§3.7). */
+.pill-check {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 18px;
+  color: var(--done);
+  flex: none;
+}
+
+.pill-stage[data-phase="pasted"] .pill-check {
+  display: flex;
+}
+
+.pill-check .pill-glyph {
+  width: 13px;
+  height: 13px;
+}
+
+/* « Copié » / message : icône de 12 pt, titre de 12 pt medium, écart de 6 pt.
+   Le titre est à 88 % du texte de la pastille (§3.7, `PillLabelStyle`). */
+.pill-label {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-pill-label);
+  line-height: var(--text-callout-line);
+  font-weight: var(--text-pill-label-weight);
+  white-space: nowrap;
+}
+
+.pill-stage[data-phase="copied"] .pill-label,
+.pill-stage[data-phase="message"] .pill-label,
+.pill-stage[data-phase="error"] .pill-label {
+  display: inline-flex;
+}
+
+.pill-label-text {
+  color: color-mix(in srgb, var(--pill-text) 88%, transparent);
+}
+
+.pill-label .pill-glyph {
+  width: 12px;
+  height: 12px;
+  flex: none;
+}
+
+/* Une seule icône par état : ✓ copié, onde barrée, ou triangle d'alerte. */
+.pill-label-icon {
+  display: none;
+}
+
+.pill-stage[data-phase="copied"] .pill-label-icon[data-icon="clipboard-check"],
+.pill-stage[data-phase="message"] .pill-label-icon[data-icon="audio-waveform"],
+.pill-stage[data-phase="error"] .pill-label-icon[data-icon="triangle-alert"] {
+  display: inline-flex;
+}
+
+.pill-stage[data-phase="copied"] .pill-label-icon {
+  color: var(--done);
+}
+
+.pill-stage[data-phase="message"] .pill-label-icon {
+  color: var(--text-secondary);
+}
+
+.pill-stage[data-phase="error"] .pill-label-icon {
+  color: var(--orange);
+}
+
+/* L'onde barrée : `waveform.slash`, un trait à 45° par-dessus l'icône. */
+.pill-label-icon[data-icon="audio-waveform"] {
+  position: relative;
+}
+
+.pill-label-icon[data-icon="audio-waveform"]::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: -1px;
+  right: -1px;
+  height: 1px;
+  background: currentColor;
+  transform: rotate(-45deg);
+}
+
+/* --- Le pop-up « rien à coller » (§3.8) ------------------------------------
+   Carte de 430 pt de large, 14 pt de marge, 10 pt en haut et en bas, écart de
+   6 pt entre l'en-tête et l'aperçu. */
+
+.pill-popup {
+  display: none;
+  flex-direction: column;
+  gap: 6px;
+  /* 430 pt sur le Mac ; la fenêtre de la pastille fait 320 pt ici, donc la
+     carte se resserre entre ses deux marges d'ombre (26 pt de chaque côté).
+     Dès que la fenêtre fait 482 pt, c'est bien 430. */
+  width: min(430px, calc(100vw - 52px));
+  padding: 10px 14px;
+  border-radius: var(--radius-popup);
+}
+
+.pill-stage[data-phase="popup"] .pill-popup {
+  display: flex;
+}
+
+.pill-stage[data-phase="popup"] .pill-card {
+  border-radius: var(--radius-popup);
+}
+
+.pill-popup-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pill-popup-icon {
+  width: 11px;
+  height: 11px;
+  color: var(--pill-accent);
+  flex: none;
+}
+
+.pill-popup-title {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-pill-popup-header);
+  line-height: var(--text-subheadline-line);
+  font-weight: var(--text-pill-popup-header-weight);
+  color: var(--pill-text-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Le ✕ du pop-up : 14 pt, glyphe de 7 pt heavy, texte à 55 % (§3.8). */
+.pill-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-capsule);
+  background: var(--pill-close-bg);
+  color: color-mix(in srgb, var(--pill-text) 55%, transparent);
+  flex: none;
+  cursor: default;
+}
+
+.pill-close .pill-glyph {
+  width: 7px;
+  height: 7px;
+}
+
+/* L'aperçu : 14 pt, deux lignes au plus, aligné à gauche (§3.8). */
+.pill-popup-body {
+  margin: 0;
+  font-size: var(--text-pill-popup-body);
+  line-height: 18px;
+  color: var(--pill-text);
+  text-align: left;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* --- Les teintes des barres, choisies dans les réglages (§1.2.3) ---------- */
+
+.pill-stage[data-listen="cyan"] { --pill-accent: var(--tint-cyan); }
+.pill-stage[data-listen="blue"] { --pill-accent: var(--tint-blue); }
+.pill-stage[data-listen="lavender"] { --pill-accent: var(--tint-lavender); }
+.pill-stage[data-listen="violet"] { --pill-accent: var(--tint-violet); }
+.pill-stage[data-listen="pink"] { --pill-accent: var(--tint-pink); }
+.pill-stage[data-listen="coral"] { --pill-accent: var(--tint-coral); }
+.pill-stage[data-listen="red"] { --pill-accent: var(--tint-red); }
+.pill-stage[data-listen="amber"] { --pill-accent: var(--tint-amber); }
+.pill-stage[data-listen="orange"] { --pill-accent: var(--tint-orange); }
+.pill-stage[data-listen="yellow"] { --pill-accent: var(--tint-yellow); }
+.pill-stage[data-listen="mint"] { --pill-accent: var(--tint-mint); }
+.pill-stage[data-listen="green"] { --pill-accent: var(--tint-green); }
+
+.pill-stage[data-think="cyan"] { --pill-thinking: var(--tint-cyan); }
+.pill-stage[data-think="blue"] { --pill-thinking: var(--tint-blue); }
+.pill-stage[data-think="lavender"] { --pill-thinking: var(--tint-lavender); }
+.pill-stage[data-think="violet"] { --pill-thinking: var(--tint-violet); }
+.pill-stage[data-think="pink"] { --pill-thinking: var(--tint-pink); }
+.pill-stage[data-think="coral"] { --pill-thinking: var(--tint-coral); }
+.pill-stage[data-think="red"] { --pill-thinking: var(--tint-red); }
+.pill-stage[data-think="amber"] { --pill-thinking: var(--tint-amber); }
+.pill-stage[data-think="orange"] { --pill-thinking: var(--tint-orange); }
+.pill-stage[data-think="yellow"] { --pill-thinking: var(--tint-yellow); }
+.pill-stage[data-think="mint"] { --pill-thinking: var(--tint-mint); }
+.pill-stage[data-think="green"] { --pill-thinking: var(--tint-green); }
+
+/* Les icônes : le SVG Lucide prend la couleur du texte. */
+.pill-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+.pill-glyph svg {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
