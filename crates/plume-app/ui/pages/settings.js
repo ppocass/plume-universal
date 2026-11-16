@@ -324,10 +324,11 @@ function renderShortcut() {
   if (button) {
     button.textContent = capturing ? t("cancel") : t("change");
   }
-  if (footer && !capturing) {
-    footer.textContent = `${t("press_shortcut_to_dictate", {
-      shortcut: keyLabel(prefs?.dictationKey || "AltLeft"),
-    })} ${t("pressed_on_its_own_with_other_keys_it_works_as_usual")}`;
+  if (footer) {
+    // La légende de Swift : `prefs.shortcut.explanation` (§2.7, section 2).
+    footer.textContent = capturing
+      ? t("single_key_or_combo_ctrl_shift_w_esc_to_cancel")
+      : t("pressed_on_its_own_with_other_keys_it_works_as_usual");
   }
 }
 

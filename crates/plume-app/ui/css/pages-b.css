@@ -37,8 +37,8 @@
   display: flex;
   align-items: center;
   gap: var(--space-10);
-  min-height: var(--space-28);
-  padding: var(--space-5) var(--space-10);
+  min-height: 24px;
+  padding: var(--space-1) var(--space-10);
   font-size: var(--text-body);
   line-height: var(--text-body-line);
 }
@@ -164,8 +164,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   padding: 0;
   border: 0;
   background: none;
@@ -218,10 +218,10 @@
   gap: var(--space-6);
   max-width: 260px;
   height: 22px;
-  padding: 0 var(--space-5) 0 var(--space-8);
-  border: 0;
+  padding: 0 var(--space-4) 0 var(--space-8);
+  border: 1px solid var(--button-bordered-border);
   border-radius: var(--radius-chip);
-  background: var(--chip-bg);
+  background: var(--button-bordered-fill);
   color: var(--text-primary);
   font-size: var(--text-body);
   line-height: var(--text-body-line);
@@ -353,7 +353,7 @@
   display: inline-flex;
   align-items: center;
   height: 22px;
-  padding: 0 var(--space-10);
+  padding: 0 var(--space-8);
   border: 1px solid transparent;
   border-radius: var(--radius-chip);
   background: var(--chip-bg);
@@ -621,6 +621,7 @@
 
 .tint {
   display: grid;
+  flex: 0 0 auto;
   place-items: center;
   width: 22px;
   height: 22px;

@@ -307,19 +307,26 @@ async function loadData() {
     return;
   }
 
+  // La recommandation d'abord : `list_models` marque « recommended » avec ce
+  // qu'elle a enregistré, donc elle doit passer après elle.
   const settled = await Promise.allSettled([
     invoke("system_check"),
     invoke("list_mics"),
-    invoke("list_models"),
     invoke("recommend_model", { spokenLanguage: spokenLanguageForRecommendation() }),
   ]);
-  const [sys, mics, models, rec] = settled.map((result) =>
+  const [sys, mics, rec] = settled.map((result) =>
     result.status === "fulfilled" ? result.value : null,
   );
   state.sys = sys;
   state.mics = Array.isArray(mics) ? mics : [];
-  state.models = Array.isArray(models) ? models : [];
   state.rec = rec;
+  try {
+    const models = await invoke("list_models");
+    state.models = Array.isArray(models) ? models : [];
+  } catch (error) {
+    console.warn("modèles :", error);
+    state.models = [];
+  }
 }
 
 // --- Contrôles -------------------------------------------------------------
@@ -556,9 +563,11 @@ function contentWelcome(container) {
   grid.append(
     h("span", { class: "welcome-label", text: t("language") }),
     segmented(
+      // Chaque langue s'écrit dans sa propre langue (« Français », « English »),
+      // comme `AppLanguage.label` côté Swift : pas de clé de traduction.
       [
-        { value: "fr", label: t("french") },
-        { value: "en", label: t("english") },
+        { value: "fr", label: "Français" },
+        { value: "en", label: "English" },
       ],
       state.prefs.appLanguage ?? "en",
       pickLanguage,
@@ -1145,7 +1154,8 @@ async function startMicTest() {
     try {
       await invoke("mic_test_start", { device: state.prefs.micDevice ?? null });
     } catch (error) {
-      state.micError = String(error);
+      console.warn("micro :", error);
+      state.micError = t("microphone_unavailable");
       const hint = document.querySelector(".mic-hint");
       if (hint) {
         hint.textContent = state.micError;

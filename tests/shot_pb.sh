@@ -108,6 +108,7 @@ shot() {
   theme=${3:-light}
   demo=${4:-}
   page=${5:-}
+  scroll=${6:-}
 
   PLUME_DATA_DIR="$DATA" PLUME_SHOW="$show" PLUME_THEME="$theme" PLUME_DEMO="$demo" \
     "$BIN" >"/tmp/plume-pb-$name.log" 2>&1 &
@@ -126,6 +127,13 @@ shot() {
     open_page "$page"
     sleep 3
   fi
+  if [ -n "$scroll" ]; then
+    # La molette dans la zone de contenu, pour voir le bas du formulaire.
+    eval "$(xdotool getwindowgeometry --shell "$WIN")"
+    xdotool mousemove --sync $((X + 500)) $((Y + 300))
+    xdotool click --repeat 20 --delay 40 5
+    sleep 1
+  fi
 
   import -window root -define png:compression-level=3 "$SHOTS/$name.png" \
     2>"/tmp/plume-pb-$name-import.log" || true
@@ -143,13 +151,14 @@ shot models main light page=models models
 shot models-downloading main light page=models-downloading models
 shot settings main light page=settings settings
 shot settings-cleanup main light page=settings-cleanup settings
+shot settings-engine main light page=settings settings 1
 shot whatsnew whatsnew light whatsnew
 shot models-dark main dark page=models models
 shot settings-dark main dark page=settings settings
 shot whatsnew-dark whatsnew dark whatsnew
 
 status=0
-for name in leet leet-converted models models-downloading settings settings-cleanup whatsnew models-dark settings-dark whatsnew-dark; do
+for name in leet leet-converted models models-downloading settings settings-cleanup settings-engine whatsnew models-dark settings-dark whatsnew-dark; do
   file="$SHOTS/$name.png"
   if [ ! -s "$file" ]; then
     echo "capture manquante : $file" >&2

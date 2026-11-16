@@ -129,6 +129,12 @@
   margin-top: var(--space-28);
 }
 
+/* Une étape sans contenu (Terminé, quand rien ne se télécharge) garde le
+   centrage de `StepPage` : pas de marge pour un bloc vide. */
+.step-content:empty {
+  margin-top: 0;
+}
+
 /* --- Pied : Passer/Retour · points · Continuer ------------------------- */
 
 .assistant-footer {

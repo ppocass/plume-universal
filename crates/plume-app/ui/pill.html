@@ -9,10 +9,48 @@
     <script type="module" src="./js/pill.js"></script>
   </head>
   <body>
-    <div class="pill-stage" data-style="top" data-phase="idle">
-      <div class="pill" role="status" aria-live="polite">
-        <span id="pill-label">Idle</span>
+    <!-- La fenêtre est transparente : la carte est dessinée dedans, avec la
+         marge de 26 pt de chaque côté que réclame son ombre (§3.1). -->
+    <main
+      class="pill-stage"
+      data-style="top"
+      data-phase="hidden"
+      data-shown="false"
+      data-ready="false"
+    >
+      <div class="pill-card" role="status" aria-live="polite">
+        <!-- Pastille ordinaire : barres, ✓, « Copié », message (§3.5). -->
+        <div class="pill-row">
+          <div class="pill-bars-wrap">
+            <canvas class="pill-bars" width="69" height="28"></canvas>
+          </div>
+
+          <button class="pill-cancel" type="button" data-i18n-title="cancel">
+            <span class="pill-glyph" data-icon="x"></span>
+          </button>
+
+          <span class="pill-check">
+            <span class="pill-glyph" data-icon="check"></span>
+          </span>
+
+          <span class="pill-label">
+            <span class="pill-glyph pill-label-icon" data-icon="clipboard-check"></span>
+            <span class="pill-label-text"></span>
+          </span>
+        </div>
+
+        <!-- Pop-up « rien à coller » : aperçu du texte, un clic le copie (§3.8). -->
+        <div class="pill-popup">
+          <div class="pill-popup-head">
+            <span class="pill-glyph pill-popup-icon" data-icon="download"></span>
+            <span class="pill-popup-title" data-i18n="no_text_field_click_to_copy"></span>
+            <button class="pill-close" type="button" data-i18n-title="close">
+              <span class="pill-glyph" data-icon="x"></span>
+            </button>
+          </div>
+          <p class="pill-popup-body"></p>
+        </div>
       </div>
-    </div>
+    </main>
   </body>
 </html>

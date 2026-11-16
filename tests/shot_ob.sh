@@ -4,8 +4,8 @@
 #
 # Même préambule que tests/ui_shot.sh (Xvfb, session D-Bus, WebKit logiciel).
 # Une capture par état : PLUME_DEMO=step=N (voir js/onboarding.js), thème clair
-# ou sombre. Les images vont dans docs/shots/ob/ (recadrées sur la fenêtre
-# 560 × 540, qui est centrée dans l'écran 1280 × 800).
+# ou sombre. Les images vont dans docs/shots/ob/, recadrées sur la fenêtre
+# elle-même : 560 × 540 centrée dans l'écran 1280 × 800, donc à (360, 130).
 set -eu
 
 if [ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ] && command -v dbus-run-session >/dev/null 2>&1; then
@@ -77,7 +77,7 @@ shot() {
 
   sleep 4
   import -window root -define png:compression-level=3 "png:-" 2>"/tmp/plume-$name-import.log" |
-    convert - -crop 600x580+340+110 +repage "$SHOTS/$name.png" 2>>"/tmp/plume-$name-import.log" ||
+    convert - -crop 560x540+360+130 +repage "$SHOTS/$name.png" 2>>"/tmp/plume-$name-import.log" ||
     import -window root "$SHOTS/$name.png" 2>>"/tmp/plume-$name-import.log" || true
 
   kill "$APP_PID" 2>/dev/null || true
@@ -111,7 +111,7 @@ sleep 4
 xdotool mousemove 850 634 click 1 2>/dev/null || true
 sleep 2
 import -window root "png:-" 2>/tmp/plume-nav-import.log |
-  convert - -crop 600x580+340+110 +repage "$SHOTS/ob-nav-step2.png" 2>>/tmp/plume-nav-import.log ||
+  convert - -crop 560x540+360+130 +repage "$SHOTS/ob-nav-step2.png" 2>>/tmp/plume-nav-import.log ||
   import -window root "$SHOTS/ob-nav-step2.png" 2>>/tmp/plume-nav-import.log || true
 kill "$APP_PID" 2>/dev/null || true
 wait "$APP_PID" 2>/dev/null || true
