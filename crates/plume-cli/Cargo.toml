@@ -1,0 +1,13 @@
+[package]
+name = "plume-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "plume-cli"
+path = "src/main.rs"
+
+[dependencies]
+plume-core = { path = "../plume-core" }
+anyhow = "1"
