@@ -6,10 +6,187 @@
     <title>Plume</title>
     <link rel="stylesheet" href="../css/tokens.css" />
     <link rel="stylesheet" href="../css/shell.css" />
+    <link rel="stylesheet" href="../css/pages-b.css" />
   </head>
   <body>
-    <section class="page">
-      <h1 class="large-title" data-i18n="settings_2">Settings</h1>
+    <section class="form-page" data-page="settings">
+      <section class="form-section" data-section="general">
+        <h2 class="form-header" data-i18n="general">General</h2>
+        <div class="form-card">
+          <div class="form-row">
+            <span class="form-label" data-i18n="language">Language</span>
+            <div data-picker="appLanguage"></div>
+          </div>
+          <div class="form-row">
+            <span class="form-label" data-i18n="appearance">Appearance</span>
+            <div data-picker="appearance"></div>
+          </div>
+          <div class="form-row">
+            <span class="form-label" data-i18n="open_at_login">Open at login</span>
+            <button type="button" class="switch" role="switch" aria-checked="false" data-toggle="launchAtLogin"></button>
+          </div>
+          <div class="form-row">
+            <span class="form-label" data-i18n="show_tray_icon">Show tray icon</span>
+            <button type="button" class="switch" role="switch" aria-checked="false" data-toggle="showTrayIcon"></button>
+          </div>
+          <div class="form-row">
+            <span class="form-label" data-i18n="sounds">Sounds</span>
+            <button type="button" class="switch" role="switch" aria-checked="false" data-toggle="soundsEnabled"></button>
+          </div>
+        </div>
+      </section>
+
+      <section class="form-section" data-section="shortcut">
+        <h2 class="form-header" data-i18n="shortcut">Shortcut</h2>
+        <div class="form-card">
+          <div class="form-row">
+            <span class="form-label" data-i18n="shortcut">Shortcut</span>
+            <div class="shortcut-control">
+              <span class="key-chip" data-key-chip>Alt</span>
+              <button type="button" class="button-small" data-capture data-i18n="change">Change…</button>
+            </div>
+          </div>
+          <div class="form-row">
+            <span class="form-label" data-i18n="leet_modifier">1337 modifier</span>
+            <div data-picker="leetKey"></div>
+          </div>
+        </div>
+        <p class="form-footer" data-shortcut-footer></p>
+      </section>
+
+      <section class="form-section" data-section="dictation">
+        <h2 class="form-header" data-i18n="dictation">Dictation</h2>
+        <div class="form-card">
+          <div class="form-row">
+            <span class="form-label" data-i18n="spoken_language">Spoken language</span>
+            <div data-picker="language"></div>
+          </div>
+          <div class="form-row">
+            <span class="form-label" data-i18n="microphone">Microphone</span>
+            <div data-picker="micDevice"></div>
+          </div>
+          <div class="form-row">
+            <span class="form-label" data-i18n="voice_commands">Voice commands</span>
+            <button type="button" class="switch" role="switch" aria-checked="false" data-toggle="voiceCommands"></button>
+          </div>
+        </div>
+        <p class="form-footer" data-voice-commands data-i18n="new_line_new_paragraph_open_close_parenthesis_open_close_quote_question_mark_exclamation_mark_semicolon">
+          “new line”, “new paragraph”, “open / close parenthesis”…
+        </p>
+        <p class="form-footer" data-whisper-note hidden data-i18n="with_whisper_choosing_the_language_is_more_reliable">
+          With Whisper, choosing the language is more reliable.
+        </p>
+      </section>
+
+      <section class="form-section" data-section="cleanup">
+        <h2 class="form-header" data-i18n="cleanup">Cleanup</h2>
+        <div class="form-card">
+          <div class="form-row">
+            <span class="form-label" data-i18n="clean_up_text">Clean up text</span>
+            <button type="button" class="switch" role="switch" aria-checked="false" data-toggle="polishEnabled"></button>
+          </div>
+          <div class="form-row">
+            <span class="form-label" data-i18n="service">Service</span>
+            <div data-picker="polishService"></div>
+          </div>
+          <div class="form-row" data-row="polishUrl" hidden>
+            <span class="form-label" data-i18n="url">URL</span>
+            <input class="text-field" type="text" data-field="polishCustomUrl" placeholder="https://…/v1" spellcheck="false" />
+          </div>
+          <div class="form-row" data-row="polishModel">
+            <span class="form-label" data-i18n="model">Model</span>
+            <input class="text-field" type="text" data-field="polishModel" spellcheck="false" />
+          </div>
+          <div class="form-row">
+            <span class="form-label" data-i18n="api_key">API key</span>
+            <div class="key-control" data-key-row></div>
+          </div>
+          <div class="form-row">
+            <span class="form-label" data-i18n="instructions">Instructions</span>
+            <div data-picker="polishPrompt"></div>
+          </div>
+          <div class="form-row">
+            <span class="form-label" data-i18n="connection">Connection</span>
+            <div class="test-control">
+              <span class="test-result" data-test-result></span>
+              <button type="button" class="button-small" data-test data-i18n="test">Test</button>
+            </div>
+          </div>
+        </div>
+        <p class="form-footer" data-i18n="fixes_punctuation_and_filler_words_only_text_is_sent_with_your_own_key">
+          Fixes punctuation and filler words. Only text is sent, with your own key.
+        </p>
+      </section>
+
+      <section class="form-section" data-section="indicator">
+        <h2 class="form-header" data-i18n="indicator_style">Indicator style</h2>
+        <div class="form-card">
+          <div class="form-row">
+            <div class="segmented" role="radiogroup" data-segmented="pillStyle"></div>
+          </div>
+          <div class="form-row">
+            <span class="form-detail" data-style-detail></span>
+          </div>
+        </div>
+        <p class="form-footer" data-i18n="the_indicator_takes_no_room_in_the_menu_bar_it_draws_on_top_of_it_both_top_styles_glide_in_from_the_top_edge_of_the_screen">
+          The indicator takes no room in the menu bar: it draws on top of it.
+        </p>
+      </section>
+
+      <section class="form-section" data-section="colors">
+        <h2 class="form-header" data-i18n="colors">Colors</h2>
+        <div class="form-card">
+          <div class="form-row">
+            <span class="form-label" data-i18n="listening">Listening</span>
+            <div class="tints" data-tints="listenTint"></div>
+          </div>
+          <div class="form-row">
+            <span class="form-label" data-i18n="processing">Processing</span>
+            <div class="tints" data-tints="thinkTint"></div>
+          </div>
+          <div class="form-row">
+            <span class="form-label" data-i18n="preview">Preview</span>
+            <div class="pill-previews">
+              <div class="pill-preview" data-mode="listening" data-preview="listenTint"></div>
+              <div class="pill-preview" data-mode="thinking" data-preview="thinkTint"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="form-section" data-section="engine">
+        <h2 class="form-header" data-i18n="engine">Engine</h2>
+        <div class="form-card">
+          <div class="form-row">
+            <span class="form-label" data-i18n="status">Status</span>
+            <span class="form-value" data-engine-status>—</span>
+          </div>
+          <div class="form-row">
+            <span class="form-label" data-i18n="model">Model</span>
+            <div class="engine-model">
+              <span data-engine-model>—</span>
+              <button type="button" class="button-small" data-change-model data-i18n="change">Change…</button>
+            </div>
+          </div>
+          <div class="form-row">
+            <span class="form-label" data-i18n="sleep_after">Sleep after</span>
+            <div data-picker="idleSeconds"></div>
+          </div>
+        </div>
+        <p class="form-footer" data-i18n="runs_offline_on_your_mac">Runs offline, on your Mac.</p>
+      </section>
+
+      <section class="form-section" data-section="setup">
+        <div class="form-card">
+          <div class="form-row">
+            <button type="button" class="button-small" data-run-setup data-i18n="run_setup_again">Run Setup Again…</button>
+          </div>
+          <div class="form-row">
+            <span class="form-label" data-i18n="version">Version</span>
+            <span class="form-value" data-version>—</span>
+          </div>
+        </div>
+      </section>
     </section>
   </body>
 </html>

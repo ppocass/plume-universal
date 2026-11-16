@@ -6,10 +6,90 @@
     <title>Plume</title>
     <link rel="stylesheet" href="../css/tokens.css" />
     <link rel="stylesheet" href="../css/shell.css" />
+    <link rel="stylesheet" href="../css/pages-b.css" />
   </head>
   <body>
-    <section class="page">
-      <h1 class="large-title">1337</h1>
+    <section class="form-page" data-page="leet">
+      <section class="form-section">
+        <h2 class="form-header" data-i18n="1337_dictation">1337 dictation</h2>
+        <div class="form-card">
+          <div class="form-row">
+            <span class="form-label" data-i18n="enable_1337_dictation">Enable 1337 dictation</span>
+            <button
+              type="button"
+              class="switch"
+              role="switch"
+              aria-checked="false"
+              data-toggle="leetEnabled"
+            ></button>
+          </div>
+          <div class="form-row">
+            <span class="form-label" data-i18n="shortcut">Shortcut</span>
+            <div class="picker-slot" data-picker="leetKey"></div>
+          </div>
+        </div>
+        <p class="form-footer" data-i18n="dictate_as_usual_then_finish_with_this_shortcut_that_dictation_comes_out_in_1337_finish_with_your_usual_shortcut_for_plain_text">
+          Dictate as usual, then finish with this shortcut: that dictation comes out in 1337.
+        </p>
+      </section>
+
+      <section class="form-section">
+        <h2 class="form-header" data-i18n="level">Level</h2>
+        <div class="form-card" role="radiogroup" aria-labelledby="leet-level">
+          <button type="button" class="level-row" data-level="light" role="radio" aria-checked="false">
+            <span class="level-head">
+              <span class="radio"></span>
+              <span class="level-name" data-i18n="light_2">Light</span>
+            </span>
+            <span class="level-sample" data-sample="light"></span>
+          </button>
+          <button type="button" class="level-row" data-level="medium" role="radio" aria-checked="false">
+            <span class="level-head">
+              <span class="radio"></span>
+              <span class="level-name" data-i18n="medium">Medium</span>
+            </span>
+            <span class="level-sample" data-sample="medium"></span>
+          </button>
+          <button type="button" class="level-row" data-level="full" role="radio" aria-checked="false">
+            <span class="level-head">
+              <span class="radio"></span>
+              <span class="level-name" data-i18n="full">Full</span>
+            </span>
+            <span class="level-sample" data-sample="full"></span>
+          </button>
+        </div>
+        <p class="form-footer" data-i18n="links_email_addresses_and_file_paths_are_never_changed_the_same_text_always_gives_the_same_result">
+          Links, email addresses and file paths are never changed.
+        </p>
+      </section>
+
+      <section class="form-section">
+        <h2 class="form-header" data-i18n="convert_some_text">Convert some text</h2>
+        <div class="form-card">
+          <div class="converter">
+            <textarea
+              class="leet-input"
+              data-input
+              spellcheck="false"
+              autocomplete="off"
+              data-i18n-placeholder="paste_or_type_text_here"
+            ></textarea>
+            <div class="converter-result" data-result hidden>
+              <div class="converter-bar">
+                <span class="converter-caption" data-i18n="result">Result</span>
+                <button type="button" class="button-link" data-copy>
+                  <span class="icon" data-copy-icon data-icon="clipboard"></span>
+                  <span data-copy-label data-i18n="copy">Copy</span>
+                </button>
+              </div>
+              <pre class="converter-output" data-output></pre>
+            </div>
+          </div>
+        </div>
+        <p class="form-footer" data-i18n="paste_some_text_and_it_comes_out_in_1337_at_the_level_chosen_above_nothing_leaves_your_mac">
+          Paste some text and it comes out in 1337 at the level chosen above.
+        </p>
+      </section>
     </section>
   </body>
 </html>

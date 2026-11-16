@@ -1,0 +1,1094 @@
+/* ==========================================================================
+   Plume — pages Accueil, Historique, Vocabulaire.
+   Source : docs/design-spec.md §2.2, §2.3, §2.4. Toutes les couleurs et les
+   tailles viennent de css/tokens.css ; les quelques valeurs dérivées (fond des
+   étiquettes à 14 %, ombres de menu et de feuille) sont déclarées ici.
+   ========================================================================== */
+
+:root {
+  /* Étiquette : la couleur du texte à 14 % (§2.3, HistoryView.swift:197-207). */
+  --tag-neutral-bg: rgba(60, 60, 67, 0.14);
+  --tag-orange-bg: rgba(255, 149, 0, 0.14);
+  --sheet-shadow: 0 18px 50px rgba(0, 0, 0, 0.26), 0 2px 8px rgba(0, 0, 0, 0.12);
+  --menu-shadow: 0 10px 28px rgba(0, 0, 0, 0.2), 0 2px 6px rgba(0, 0, 0, 0.1);
+  --modal-backdrop: rgba(0, 0, 0, 0.12);
+  --row-hover: rgba(60, 60, 67, 0.06);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --tag-neutral-bg: rgba(235, 235, 245, 0.14);
+    --tag-orange-bg: rgba(255, 159, 10, 0.14);
+    --modal-backdrop: rgba(0, 0, 0, 0.36);
+    --row-hover: rgba(235, 235, 245, 0.06);
+  }
+}
+
+:root[data-theme="dark"] {
+  --tag-neutral-bg: rgba(235, 235, 245, 0.14);
+  --tag-orange-bg: rgba(255, 159, 10, 0.14);
+  --modal-backdrop: rgba(0, 0, 0, 0.36);
+  --row-hover: rgba(235, 235, 245, 0.06);
+}
+
+:root[data-theme="light"] {
+  --tag-neutral-bg: rgba(60, 60, 67, 0.14);
+  --tag-orange-bg: rgba(255, 149, 0, 0.14);
+  --modal-backdrop: rgba(0, 0, 0, 0.12);
+  --row-hover: rgba(60, 60, 67, 0.06);
+}
+
+/* --- Icônes ------------------------------------------------------------- */
+
+.icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 13px;
+  height: 13px;
+}
+
+.icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* --- Barre de page (le rôle de la barre d'outils macOS) ----------------- */
+
+.page-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: var(--space-10);
+  min-height: 52px;
+  padding: var(--space-12) var(--space-20);
+  background: var(--window-bg);
+  border-bottom: 1px solid var(--separator);
+}
+
+.page-title {
+  margin: 0;
+  flex: 0 0 auto;
+  font-size: var(--text-title);
+  line-height: var(--text-title-line);
+  font-weight: var(--text-title-weight);
+  color: var(--text-primary);
+}
+
+.toolbar-spacer {
+  flex: 1 1 auto;
+}
+
+.search-field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  width: 180px;
+  height: 22px;
+  padding: 0 var(--space-7);
+  border: 1px solid var(--field-border);
+  border-radius: var(--radius-chip);
+  background: var(--field-bg);
+  color: var(--text-secondary);
+}
+
+.search-field .icon {
+  width: 12px;
+  height: 12px;
+  color: var(--text-tertiary);
+}
+
+.search-field input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: var(--text-body);
+  line-height: var(--text-body-line);
+}
+
+.search-field input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.toolbar-action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-5);
+  height: 22px;
+  padding: 0 var(--space-8);
+  border: 1px solid transparent;
+  border-radius: var(--radius-chip);
+  background: none;
+  color: var(--text-primary);
+  font-size: var(--text-body);
+  line-height: var(--text-body-line);
+}
+
+.toolbar-action .icon {
+  width: 13px;
+  height: 13px;
+  color: var(--text-secondary);
+}
+
+.toolbar-action:hover:not(:disabled) {
+  background: var(--chip-bg);
+}
+
+.toolbar-action:disabled {
+  opacity: 0.4;
+}
+
+.toolbar-action.is-accent {
+  color: var(--accent);
+}
+
+.toolbar-action.is-accent .icon {
+  color: var(--accent);
+}
+
+/* --- Accueil (§2.2) ----------------------------------------------------- */
+
+.page-home {
+  max-width: var(--page-max-width);
+  margin: 0 auto;
+  padding: var(--page-padding);
+}
+
+.home-layout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-22);
+}
+
+.home-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-16);
+}
+
+.home-glyph {
+  display: block;
+  flex: 0 0 auto;
+  width: 58px;
+  height: 58px;
+}
+
+.home-heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.home-title {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: var(--text-brand);
+  line-height: var(--text-large-title-line);
+  font-weight: var(--text-brand-weight);
+}
+
+.home-subtitle {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--text-body);
+  line-height: var(--text-body-line);
+}
+
+/* Bandeau « Configuration requise » : même carte que les autorisations
+   macOS, remplie par system_check / engine_status. */
+.setup-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+  padding: var(--space-16);
+  border: 1px solid var(--permission-card-border);
+  border-radius: var(--radius-card);
+  background: var(--permission-card-bg);
+}
+
+.setup-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  margin: 0;
+  color: var(--orange);
+  font-size: var(--text-headline);
+  line-height: var(--text-headline-line);
+  font-weight: var(--text-headline-weight);
+}
+
+.setup-title .icon {
+  width: 14px;
+  height: 14px;
+}
+
+.setup-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+}
+
+.setup-status {
+  width: 18px;
+  height: 18px;
+  color: var(--text-secondary);
+}
+
+.setup-status.is-ok {
+  color: var(--done);
+}
+
+.setup-copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.setup-name {
+  font-weight: 500;
+}
+
+.setup-detail {
+  color: var(--text-secondary);
+  font-size: var(--text-callout);
+  line-height: var(--text-callout-line);
+}
+
+.home-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+}
+
+.home-section-title {
+  margin: 0;
+  font-size: var(--text-headline);
+  line-height: var(--text-headline-line);
+  font-weight: var(--text-headline-weight);
+}
+
+.gesture-card {
+  overflow: hidden;
+  border-radius: var(--radius-card);
+  background: var(--card-bg);
+}
+
+.gesture-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-14);
+  padding: var(--space-11) var(--space-14);
+}
+
+.gesture-keys {
+  display: flex;
+  flex: 0 0 110px;
+  gap: var(--space-4);
+  width: 110px;
+  justify-content: flex-start;
+}
+
+.gesture-label {
+  min-width: 0;
+}
+
+.gesture-divider {
+  height: 1px;
+  margin-left: 138px;
+  background: var(--separator);
+}
+
+.keycap {
+  display: inline-block;
+  padding: 3px var(--space-6);
+  border: 1px solid var(--keycap-border);
+  border-radius: var(--radius-keycap);
+  background: var(--keycap-bg);
+  color: var(--text-primary);
+  font-size: var(--text-keycap);
+  line-height: var(--text-subheadline-line);
+  font-weight: var(--text-keycap-weight);
+  white-space: nowrap;
+}
+
+.stats-row {
+  display: flex;
+  gap: var(--space-14);
+}
+
+.stat-tile {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: var(--space-6);
+  min-width: 0;
+  padding: var(--space-14);
+  border-radius: var(--radius-card);
+  background: var(--card-bg);
+}
+
+.stat-icon {
+  width: 14px;
+  height: 14px;
+  color: var(--accent);
+}
+
+.stat-value {
+  font-size: var(--text-stat);
+  line-height: 28px;
+  font-weight: var(--text-stat-weight);
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-label {
+  color: var(--text-secondary);
+  font-size: var(--text-stat-label);
+  line-height: var(--text-callout-line);
+  font-weight: var(--text-stat-label-weight);
+}
+
+.latest-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.latest-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-12);
+}
+
+.latest-title {
+  margin: 0;
+  font-size: var(--text-headline);
+  line-height: var(--text-headline-line);
+  font-weight: var(--text-headline-weight);
+}
+
+.latest-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-size: var(--text-body);
+  line-height: var(--text-body-line);
+}
+
+.latest-link .icon {
+  width: 10px;
+  height: 10px;
+}
+
+.latest-card {
+  padding: var(--space-14);
+  border-radius: var(--radius-card);
+  background: var(--card-bg);
+}
+
+/* --- Rangée de dictée (Accueil + Historique, §2.3) --------------------- */
+
+.history-row {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-12);
+  min-width: 0;
+}
+
+.history-main {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--space-6);
+  min-width: 0;
+}
+
+.history-text {
+  color: var(--text-primary);
+  font-size: var(--text-body);
+  line-height: var(--text-body-line);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+.history-text.is-secondary {
+  color: var(--text-secondary);
+}
+
+.history-text.is-clamped {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 6;
+}
+
+.history-text.is-clamped:hover {
+  cursor: default;
+}
+
+.history-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-8);
+  color: var(--text-secondary);
+  font-size: var(--text-caption);
+  line-height: var(--text-caption-line);
+}
+
+.history-meta .dot {
+  color: var(--text-secondary);
+}
+
+.history-link {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-size: var(--text-callout);
+  line-height: var(--text-callout-line);
+  text-align: left;
+}
+
+.history-link:hover {
+  text-decoration: underline;
+}
+
+.history-link[hidden] {
+  display: none;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-2) var(--space-6);
+  border-radius: var(--radius-capsule);
+  background: var(--tag-neutral-bg);
+  color: var(--text-secondary);
+  font-size: var(--text-tag);
+  line-height: var(--text-caption-line);
+  font-weight: var(--text-tag-weight);
+  white-space: nowrap;
+}
+
+.tag.is-accent {
+  background: rgba(var(--accent-rgb), 0.14);
+  color: var(--accent);
+}
+
+.tag.is-orange {
+  background: var(--tag-orange-bg);
+  color: var(--orange);
+}
+
+.row-action {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-top: var(--space-2);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-secondary);
+  opacity: 0;
+}
+
+.row-action .icon {
+  width: 15px;
+  height: 15px;
+}
+
+.history-row:hover .row-action,
+.row-action:focus-visible {
+  opacity: 1;
+}
+
+.row-action.is-done {
+  opacity: 1;
+  color: var(--done);
+}
+
+.row-retry {
+  flex: 0 0 auto;
+  height: 22px;
+  margin-top: var(--space-2);
+  padding: 0 var(--space-10);
+  border: 1px solid var(--button-bordered-border);
+  border-radius: var(--radius-chip);
+  background: var(--button-bordered-fill);
+  color: var(--button-bordered-label);
+  font-size: var(--text-callout);
+  line-height: var(--text-callout-line);
+}
+
+/* --- Historique (§2.3) -------------------------------------------------- */
+
+.page-history,
+.page-vocabulary {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.history-body,
+.vocab-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+
+.history-list,
+.vocab-list {
+  padding: var(--space-8) 0 var(--space-30);
+}
+
+.day-section + .day-section {
+  margin-top: var(--space-14);
+}
+
+.section-header {
+  margin: 0;
+  padding: var(--space-8) var(--space-20) var(--space-4);
+  color: var(--text-secondary);
+  font-size: var(--text-subheadline);
+  line-height: var(--text-subheadline-line);
+  font-weight: 600;
+}
+
+.history-list .history-row {
+  padding: var(--space-6) var(--space-20);
+}
+
+.history-list .history-row + .history-row::before,
+.vocab-row + .vocab-row::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: var(--space-20);
+  right: var(--space-20);
+  height: 1px;
+  background: var(--separator);
+}
+
+.history-list .history-row:hover {
+  background: var(--row-hover);
+}
+
+.empty-state {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-8);
+  min-height: calc(100vh - 52px);
+  padding: var(--space-30);
+  text-align: center;
+}
+
+.empty-icon {
+  width: 44px;
+  height: 44px;
+  margin-bottom: var(--space-6);
+  color: var(--text-secondary);
+}
+
+.empty-title {
+  font-size: var(--text-title2);
+  line-height: var(--text-title2-line);
+  font-weight: 600;
+}
+
+.empty-detail {
+  color: var(--text-secondary);
+  font-size: var(--text-body);
+  line-height: var(--text-body-line);
+}
+
+.no-results {
+  padding: var(--space-40) var(--space-20);
+  color: var(--text-secondary);
+  font-size: var(--text-body);
+  line-height: var(--text-body-line);
+  text-align: center;
+}
+
+/* --- Menu contextuel ---------------------------------------------------- */
+
+.context-menu {
+  position: fixed;
+  z-index: 300;
+  min-width: 200px;
+  max-width: 280px;
+  padding: var(--space-4);
+  border: 1px solid var(--separator);
+  border-radius: var(--radius-row);
+  background: var(--sidebar-footer-fallback);
+  box-shadow: var(--menu-shadow);
+}
+
+.context-menu-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 22px;
+  padding: 0 var(--space-8);
+  border: 0;
+  border-radius: var(--space-4);
+  background: none;
+  color: var(--text-primary);
+  font-size: var(--text-body);
+  line-height: var(--text-body-line);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.context-menu-item:hover {
+  background: var(--selection);
+}
+
+.context-menu-item.is-destructive {
+  color: var(--red);
+}
+
+.context-menu-separator {
+  height: 1px;
+  margin: var(--space-4) var(--space-8);
+  background: var(--separator);
+}
+
+/* --- Feuilles et dialogues --------------------------------------------- */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 60px var(--space-20) var(--space-20);
+  background: var(--modal-backdrop);
+}
+
+.modal-overlay.is-centered {
+  align-items: center;
+  padding: var(--space-20);
+}
+
+.sheet {
+  display: flex;
+  flex-direction: column;
+  width: 440px;
+  height: 440px;
+  overflow: hidden;
+  border: 1px solid var(--separator);
+  border-radius: var(--radius-chip-large);
+  background: var(--window-bg);
+  box-shadow: var(--sheet-shadow);
+}
+
+.sheet-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-16) var(--space-16) 0;
+}
+
+.sheet-footer {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--space-8);
+  padding: var(--space-12) var(--space-20) var(--space-16);
+}
+
+.sheet-footer .spacer {
+  flex: 1 1 auto;
+}
+
+.form-section {
+  margin-bottom: var(--space-16);
+}
+
+.form-section-header {
+  padding: 0 var(--space-4) var(--space-6);
+  color: var(--text-secondary);
+  font-size: var(--text-subheadline);
+  line-height: var(--text-subheadline-line);
+  font-weight: 600;
+}
+
+.form-card {
+  overflow: hidden;
+  border: 1px solid var(--separator);
+  border-radius: var(--radius-chip-large);
+  background: var(--window-bg);
+}
+
+.form-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  min-height: 34px;
+  padding: var(--space-4) var(--space-12);
+}
+
+.form-row + .form-row::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: var(--space-12);
+  left: var(--space-12);
+  height: 1px;
+  background: var(--separator);
+}
+
+.form-row input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: var(--text-body);
+  line-height: var(--text-body-line);
+}
+
+.form-row input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.form-row.is-word {
+  min-height: 46px;
+  padding: var(--space-6) var(--space-12);
+}
+
+.form-row.is-word input {
+  height: 30px;
+  font-size: var(--text-title3);
+  line-height: var(--text-title3-line);
+  font-weight: 600;
+}
+
+.icon-button {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-secondary);
+}
+
+.icon-button .icon {
+  width: 16px;
+  height: 16px;
+}
+
+.icon-button[hidden] {
+  display: none;
+}
+
+.form-add {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  width: 100%;
+  padding: var(--space-8) var(--space-12);
+  border: 0;
+  background: none;
+  color: var(--text-primary);
+  font-size: var(--text-body);
+  line-height: var(--text-body-line);
+  text-align: left;
+}
+
+.form-add::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: var(--space-12);
+  left: var(--space-12);
+  height: 1px;
+  background: var(--separator);
+}
+
+.form-add .icon {
+  width: 13px;
+  height: 13px;
+}
+
+.form-footnote {
+  padding: var(--space-6) var(--space-4) 0;
+  color: var(--text-secondary);
+  font-size: var(--text-caption);
+  line-height: var(--text-caption-line);
+}
+
+/* Boutons de feuille : poussée macOS 22 pt, rayon 6 (§1.6, métrique système). */
+.sheet-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 64px;
+  height: 22px;
+  padding: 0 var(--space-12);
+  border: 1px solid var(--button-bordered-border);
+  border-radius: var(--radius-chip);
+  background: var(--button-bordered-fill);
+  color: var(--button-bordered-label);
+  font-size: var(--text-body);
+  line-height: var(--text-body-line);
+}
+
+.sheet-button.is-default {
+  border-color: transparent;
+  background: var(--button-prominent-fill);
+  color: var(--button-prominent-label);
+}
+
+.sheet-button:disabled {
+  opacity: 0.4;
+}
+
+.sheet-button.is-destructive {
+  border-color: var(--button-bordered-border);
+  background: var(--button-bordered-fill);
+  color: var(--red);
+}
+
+/* « Corriger un mot » : 420 pt de large, padding 20 (§2.4). */
+.fix-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-14);
+  width: 420px;
+  padding: var(--space-20);
+  border: 1px solid var(--separator);
+  border-radius: var(--radius-chip-large);
+  background: var(--window-bg);
+  box-shadow: var(--sheet-shadow);
+}
+
+.fix-title {
+  margin: 0;
+  font-size: var(--text-title3);
+  line-height: var(--text-title3-line);
+  font-weight: 600;
+}
+
+.fix-quote {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: var(--text-callout);
+  line-height: var(--text-callout-line);
+  overflow-wrap: anywhere;
+  user-select: text;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+}
+
+.fix-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.fix-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+}
+
+.fix-label {
+  flex: 0 0 64px;
+  font-size: var(--text-body);
+  line-height: var(--text-body-line);
+}
+
+.fix-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 22px;
+  padding: 0 var(--space-6);
+  border: 1px solid var(--button-bordered-border);
+  border-radius: var(--radius-keycap);
+  background: var(--button-bordered-fill);
+  color: var(--button-bordered-label);
+  font-family: inherit;
+  font-size: var(--text-body);
+  line-height: var(--text-body-line);
+}
+
+.fix-note {
+  color: var(--text-secondary);
+  font-size: var(--text-caption);
+  line-height: var(--text-caption-line);
+}
+
+.fix-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-8);
+}
+
+/* Dialogue de confirmation (Tout effacer). */
+.dialog {
+  width: 300px;
+  padding: var(--space-20);
+  border: 1px solid var(--separator);
+  border-radius: var(--radius-card);
+  background: var(--window-bg);
+  box-shadow: var(--sheet-shadow);
+}
+
+.dialog-title {
+  margin: 0;
+  font-size: var(--text-headline);
+  line-height: var(--text-headline-line);
+  font-weight: var(--text-headline-weight);
+}
+
+.dialog-message {
+  margin: var(--space-6) 0 0;
+  color: var(--text-secondary);
+  font-size: var(--text-callout);
+  line-height: var(--text-callout-line);
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-8);
+  margin-top: var(--space-20);
+}
+
+.dialog-actions .is-destructive {
+  border-color: var(--button-bordered-border);
+  background: var(--button-bordered-fill);
+  color: var(--red);
+}
+
+/* --- Vocabulaire (§2.4) ------------------------------------------------- */
+
+.vocab-intro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-4) var(--space-20) var(--space-14);
+}
+
+.new-word-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  align-self: flex-start;
+  padding: var(--space-4) 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-size: var(--text-body);
+  line-height: var(--text-body-line);
+  font-weight: 500;
+}
+
+.new-word-row .icon {
+  width: 14px;
+  height: 14px;
+}
+
+.vocab-hint {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--text-callout);
+  line-height: var(--text-callout-line);
+}
+
+.vocab-row {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-8);
+  width: 100%;
+  padding: var(--space-5) var(--space-20);
+  border: 0;
+  background: none;
+  color: var(--text-primary);
+  text-align: left;
+}
+
+.vocab-row:hover {
+  background: var(--row-hover);
+}
+
+.vocab-main {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.vocab-word {
+  font-size: var(--text-vocab-word);
+  line-height: var(--text-body-line);
+  font-weight: var(--text-vocab-word-weight);
+}
+
+.vocab-variants {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: var(--text-vocab-variants);
+  line-height: var(--text-callout-line);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.vocab-chevron {
+  flex: 0 0 auto;
+  width: 11px;
+  height: 11px;
+  margin-top: var(--space-4);
+  color: var(--text-tertiary);
+}
+
+/* La feuille du vocabulaire garde ses 440 × 440 (§2.4). */
+.vocab-sheet .sheet-body {
+  padding-bottom: var(--space-4);
+}
+
+@media (max-height: 520px) {
+  .modal-overlay {
+    padding-top: var(--space-20);
+  }
+}

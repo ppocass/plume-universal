@@ -6,11 +6,18 @@
     <title>Plume</title>
     <link rel="stylesheet" href="./css/tokens.css" />
     <link rel="stylesheet" href="./css/shell.css" />
+    <link rel="stylesheet" href="./css/pages-b.css" />
     <script type="module" src="./js/whatsnew.js"></script>
   </head>
   <body>
-    <main class="whatsnew">
-      <h1 class="large-title" id="whatsnew-title">What's new in Plume</h1>
+    <main class="whatsnew" data-page="whatsnew">
+      <p class="wn-eyebrow" data-eyebrow></p>
+      <div class="wn-stage" data-stage></div>
+      <footer class="wn-footer">
+        <button type="button" class="wn-back" data-back data-i18n="back">Back</button>
+        <div class="wn-dots" data-dots></div>
+        <button type="button" class="button-prominent wn-next" data-next data-i18n="next">Next</button>
+      </footer>
     </main>
   </body>
 </html>

@@ -6,10 +6,43 @@
     <title>Plume</title>
     <link rel="stylesheet" href="../css/tokens.css" />
     <link rel="stylesheet" href="../css/shell.css" />
+    <link rel="stylesheet" href="../css/pages-b.css" />
   </head>
   <body>
-    <section class="page">
-      <h1 class="large-title" data-i18n="models">Models</h1>
+    <section class="form-page" data-page="models">
+      <section class="form-section">
+        <div class="form-card">
+          <div class="form-row">
+            <span class="form-label" data-i18n="this_mac">This Mac</span>
+            <span class="form-value" data-machine>—</span>
+          </div>
+          <div class="form-row">
+            <span class="form-label" data-i18n="status">Status</span>
+            <span class="form-value" data-engine-status>—</span>
+          </div>
+        </div>
+        <p class="form-footer" data-i18n="everything_runs_on_your_mac_your_voice_never_leaves_it">
+          Everything runs on your Mac: your voice never leaves it.
+        </p>
+      </section>
+
+      <section class="form-section">
+        <h2 class="form-header">Parakeet</h2>
+        <div class="form-card" data-family="parakeet"></div>
+        <p class="form-footer" data-i18n="runs_on_the_neural_engine_very_fast_even_with_8_gb">
+          Runs on the Neural Engine: very fast, even with 8 GB.
+        </p>
+      </section>
+
+      <section class="form-section">
+        <h2 class="form-header">Whisper</h2>
+        <div class="form-card" data-family="whisper"></div>
+        <p class="form-footer" data-i18n="runs_on_the_gpu_more_languages_and_it_uses_your_vocabulary">
+          Runs on the GPU. More languages, and it uses your vocabulary.
+        </p>
+      </section>
     </section>
+
+    <div class="alert-layer" data-alert hidden></div>
   </body>
 </html>
