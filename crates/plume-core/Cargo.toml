@@ -27,3 +27,5 @@ rdev = { git = "https://github.com/rustdesk-org/rdev" }
 # Windows : le Ctrl+V du collage (SendInput). Rien à compiler sous Linux.
 [target.'cfg(windows)'.dependencies]
 enigo = "0.6"
+# --- controller ---
+# --- store ---

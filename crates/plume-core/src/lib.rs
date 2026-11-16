@@ -4,3 +4,5 @@ pub mod audio;
 pub mod engine;
 pub mod text;
 pub mod input;
+pub mod controller;
+pub mod store;
