@@ -26,3 +26,11 @@ sysinfo = "0.33"
 arboard = "3"
 chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
 uuid = { version = "1", features = ["v4"] }
+
+# Téléchargement et installation des modèles (extra.rs / models.rs).
+ureq = { version = "2", features = ["json"] }
+sha2 = "0.10"
+tar = "0.4"
+bzip2 = "0.4"
+# Capture de la prochaine touche seule (même écouteur que le cœur).
+rdev = { git = "https://github.com/rustdesk-org/rdev" }

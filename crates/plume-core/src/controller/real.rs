@@ -1,12 +1,14 @@
 //! Les trois effets de bord réels du chef d'orchestre : le micro (`Mic`),
-//! Parakeet (chargé en tâche de fond) et le collage au curseur.
+//! le moteur — Parakeet **ou** Whisper (chargé en tâche de fond) — et le
+//! collage au curseur.
 //!
 //! Rien de spécifique à la dictée ici : chaque type ne fait que brancher un
 //! trait du module sur le module correspondant (`input::mic`, `engine`,
 //! `input::paste`).
 
 use std::path::{Path, PathBuf};
-use std::sync::mpsc::Sender;
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::mpsc::{RecvTimeoutError, Sender};
 use std::sync::{Condvar, Mutex, MutexGuard};
 use std::time::Duration;
 
@@ -14,7 +16,7 @@ use anyhow::{anyhow, bail, Result};
 
 use super::{Paster, Recorder, Transcriber, Transcribed};
 use crate::audio::gate::{self, GateVerdict};
-use crate::engine::{transcribe_dictation, Parakeet};
+use crate::engine::{transcribe_dictation, Engine, Family};
 use crate::input::mic::Mic;
 
 /// Journal de collage pour les tests : quand cette variable d'environnement est
@@ -26,9 +28,13 @@ pub const PASTE_LOG_ENV: &str = "PLUME_PASTE_LOG";
 
 // MARK: Micro
 
-/// Le micro du système (ou le fichier de `PLUME_FAKE_AUDIO`).
+/// Le micro du système (ou le fichier de `PLUME_FAKE_AUDIO`), éventuellement
+/// celui choisi dans les réglages.
 pub struct SystemRecorder {
-    mic: Mic,
+    /// Ouvert au début d'une dictée, fermé à la fin : rien n'écoute entre deux.
+    mic: Option<Mic>,
+    /// Le nom du micro choisi (`Prefs.micDevice`) ; `None` = celui du système.
+    device: Option<String>,
 }
 
 impl Default for SystemRecorder {
@@ -39,30 +45,56 @@ impl Default for SystemRecorder {
 
 impl SystemRecorder {
     pub fn new() -> Self {
-        Self { mic: Mic::new() }
+        Self {
+            mic: None,
+            device: None,
+        }
+    }
+
+    /// Le micro choisi par son nom ; s'il a disparu, `start()` le dit.
+    pub fn with_device(device: Option<String>) -> Self {
+        Self {
+            mic: None,
+            device: device.filter(|name| !name.trim().is_empty()),
+        }
     }
 }
 
 impl Recorder for SystemRecorder {
     fn start(&mut self) -> Result<()> {
-        self.mic.start()
+        let mut mic = match &self.device {
+            Some(name) => Mic::with_device(name.clone()),
+            None => Mic::new(),
+        };
+        mic.start()?;
+        self.mic = Some(mic);
+        Ok(())
     }
 
     fn stop(&mut self) -> Vec<f32> {
-        self.mic.stop()
+        self.mic
+            .take()
+            .map(|mut mic| mic.stop())
+            .unwrap_or_default()
     }
 
     fn level(&self) -> f32 {
-        self.mic.level()
+        self.mic.as_ref().map(Mic::level).unwrap_or(0.0)
     }
 }
 
 // MARK: Moteur
 
-/// Parakeet, chargé une fois et gardé en mémoire tant qu'on dicte.
-pub struct ParakeetTranscriber {
+/// Le moteur (Parakeet ou Whisper), chargé une fois et gardé en mémoire tant
+/// qu'on dicte.
+///
+/// Le nom `ParakeetTranscriber` est conservé pour les appelants existants :
+/// c'est le même type, qui sait maintenant charger l'une ou l'autre famille.
+pub struct EngineTranscriber {
     model_dir: PathBuf,
     threads: i32,
+    /// La langue parlée, pour Whisper (`auto` = détection).
+    language: String,
     state: Mutex<EngineState>,
     /// Réveille `transcribe` quand le chargement de fond est fini.
     ready: Condvar,
@@ -70,7 +102,7 @@ pub struct ParakeetTranscriber {
 
 #[derive(Default)]
 struct EngineState {
-    engine: Option<Parakeet>,
+    engine: Option<Engine>,
     /// Un chargement est en cours (dans un autre fil).
     loading: bool,
     /// Une mise en veille a été demandée pendant le chargement : on ne garde
@@ -80,11 +112,32 @@ struct EngineState {
     error: Option<String>,
 }
 
-impl ParakeetTranscriber {
+/// Un moteur est chargé quelque part dans l'app (pour `engine_status`).
+static ENGINE_LOADED: AtomicBool = AtomicBool::new(false);
+
+/// La génération du chef d'orchestre en cours : une relance des réglages en
+/// ouvre une nouvelle, et l'ancienne boucle s'arrête à la première touche.
+static GENERATION: AtomicU64 = AtomicU64::new(0);
+
+/// Capture d'une touche en cours (Réglages) : le geste de dictée est ignoré.
+static CAPTURE_ACTIVE: AtomicBool = AtomicBool::new(false);
+
+impl EngineTranscriber {
+    /// Le dossier du modèle.
     pub fn new(model_dir: impl Into<PathBuf>, threads: i32) -> Self {
+        Self::with_language(model_dir, threads, "auto")
+    }
+
+    /// Les mêmes réglages, avec la langue parlée de Whisper.
+    pub fn with_language(
+        model_dir: impl Into<PathBuf>,
+        threads: i32,
+        language: impl Into<String>,
+    ) -> Self {
         Self {
             model_dir: model_dir.into(),
             threads,
+            language: language.into(),
             state: Mutex::new(EngineState::default()),
             ready: Condvar::new(),
         }
@@ -93,6 +146,32 @@ impl ParakeetTranscriber {
     /// Le dossier du modèle.
     pub fn model_dir(&self) -> &Path {
         &self.model_dir
+    }
+
+    /// Un moteur est-il chargé en mémoire (pour `engine_status`) ?
+    pub fn engine_loaded() -> bool {
+        ENGINE_LOADED.load(Ordering::SeqCst)
+    }
+
+    /// Ouvre une nouvelle génération du chef d'orchestre et rend son numéro.
+    pub fn next_generation() -> u64 {
+        GENERATION.fetch_add(1, Ordering::SeqCst) + 1
+    }
+
+    /// Cette génération est-elle toujours celle qui agit ?
+    pub fn is_current_generation(generation: u64) -> bool {
+        GENERATION.load(Ordering::SeqCst) == generation
+    }
+
+    /// Active/désactive la capture de touche (le geste de dictée est ignoré
+    /// pendant la capture).
+    pub fn set_capture_active(active: bool) {
+        CAPTURE_ACTIVE.store(active, Ordering::SeqCst);
+    }
+
+    /// Une capture de touche est-elle en cours ?
+    pub fn capture_active() -> bool {
+        CAPTURE_ACTIVE.load(Ordering::SeqCst)
     }
 
     /// Le verrou, même si un fil a paniqué en le tenant (on ne veut pas qu'une
@@ -104,7 +183,7 @@ impl ParakeetTranscriber {
     }
 }
 
-impl Transcriber for ParakeetTranscriber {
+impl Transcriber for EngineTranscriber {
     fn is_loaded(&self) -> bool {
         let state = self.lock();
         state.loading || state.engine.is_some()
@@ -121,8 +200,11 @@ impl Transcriber for ParakeetTranscriber {
         }
 
         // Le chargement lui-même se fait sans tenir le verrou : `transcribe`
-        // peut attendre sans bloquer un éventuel `release`.
-        let result = Parakeet::load(&self.model_dir, self.threads);
+        // peut attendre sans bloquer un éventuel `release`. La famille vient
+        // des fichiers du dossier (Parakeet : `joiner`, Whisper : `*-encoder`).
+        let result = Family::detect(&self.model_dir).and_then(|family| {
+            Engine::load(&self.model_dir, family, self.threads, &self.language)
+        });
 
         let mut state = self.lock();
         state.loading = false;
@@ -130,14 +212,17 @@ impl Transcriber for ParakeetTranscriber {
             Ok(engine) => {
                 if state.release_pending {
                     state.release_pending = false;
+                    ENGINE_LOADED.store(false, Ordering::SeqCst);
                 } else {
                     state.engine = Some(engine);
+                    ENGINE_LOADED.store(true, Ordering::SeqCst);
                 }
                 self.ready.notify_all();
                 Ok(())
             }
             Err(error) => {
                 state.error = Some(format!("{error:#}"));
+                ENGINE_LOADED.store(false, Ordering::SeqCst);
                 self.ready.notify_all();
                 Err(error)
             }
@@ -171,8 +256,8 @@ impl Transcriber for ParakeetTranscriber {
             bail!("modèle non chargé");
         };
 
-        // Parakeet gère lui-même les longues séquences : le moteur découpe
-        // seulement au-delà de 25 s, dans les creux de la voix.
+        // Le moteur gère lui-même les longues séquences : on découpe seulement
+        // au-delà de 25 s, dans les creux de la voix.
         match transcribe_dictation(engine, samples)? {
             Some(text) if !text.trim().is_empty() => Ok(Transcribed::Text(text)),
             _ => Ok(Transcribed::Rejected("rien entendu".into())),
@@ -188,8 +273,12 @@ impl Transcriber for ParakeetTranscriber {
             return;
         }
         state.engine = None;
+        ENGINE_LOADED.store(false, Ordering::SeqCst);
     }
 }
+
+/// L'ancien nom du moteur Parakeet, gardé pour les appelants.
+pub type ParakeetTranscriber = EngineTranscriber;
 
 // MARK: Collage
 
@@ -238,18 +327,59 @@ pub fn append_paste_log(path: &Path, text: &str) -> std::io::Result<()> {
     file.flush()
 }
 
-impl super::Controller<SystemRecorder, ParakeetTranscriber, SystemPaster> {
+impl super::Controller<SystemRecorder, EngineTranscriber, SystemPaster> {
     /// Le chef d'orchestre branché sur le vrai micro, le vrai modèle et le vrai
     /// collage — ce que `plume-cli run` et l'app Tauri utilisent.
     pub fn system(settings: super::Settings, events: Sender<super::Event>) -> Self {
-        let transcriber = ParakeetTranscriber::new(&settings.model_dir, settings.threads);
+        Self::system_with_mic(settings, events, None)
+    }
+
+    /// Le même, avec le micro choisi dans les réglages (`Prefs.micDevice`).
+    pub fn system_with_mic(
+        settings: super::Settings,
+        events: Sender<super::Event>,
+        mic: Option<String>,
+    ) -> Self {
+        let transcriber = EngineTranscriber::with_language(
+            &settings.model_dir,
+            settings.threads,
+            &settings.lang,
+        );
         Self::new(
             settings,
             events,
-            SystemRecorder::new(),
+            SystemRecorder::with_device(mic),
             transcriber,
             SystemPaster,
         )
+    }
+
+    /// La boucle de vie d'une génération donnée : chaque geste, plus le
+    /// battement qui envoie les niveaux et relâche le moteur.
+    ///
+    /// Une relance des réglages (`next_generation`) rend cette boucle obsolète :
+    /// elle s'arrête à la première touche, sans rien dicter — la nouvelle
+    /// génération, elle, écoute avec les nouveaux réglages. Pendant une capture
+    /// de touche, le geste est ignoré.
+    pub fn run_generation(&mut self, generation: u64) -> Result<()> {
+        let gestures = crate::input::listener::start(self.gesture_config())?;
+        loop {
+            if !EngineTranscriber::is_current_generation(generation) {
+                return Ok(());
+            }
+            match gestures.recv_timeout(self.next_timeout()) {
+                Ok(output) => {
+                    if !EngineTranscriber::is_current_generation(generation) {
+                        return Ok(());
+                    }
+                    if !EngineTranscriber::capture_active() {
+                        self.handle(output);
+                    }
+                }
+                Err(RecvTimeoutError::Timeout) => self.tick(),
+                Err(RecvTimeoutError::Disconnected) => return Ok(()),
+            }
+        }
     }
 }
 
@@ -294,5 +424,31 @@ mod tests {
             transcriber.transcribe(&silence).unwrap(),
             Transcribed::Rejected("silence".into())
         );
+    }
+
+    #[test]
+    fn a_generation_is_current_until_the_next_one() {
+        let first = EngineTranscriber::next_generation();
+        assert!(EngineTranscriber::is_current_generation(first));
+        let second = EngineTranscriber::next_generation();
+        assert!(!EngineTranscriber::is_current_generation(first));
+        assert!(EngineTranscriber::is_current_generation(second));
+    }
+
+    #[test]
+    fn capture_is_a_flag_around_the_gesture() {
+        assert!(!EngineTranscriber::capture_active());
+        EngineTranscriber::set_capture_active(true);
+        assert!(EngineTranscriber::capture_active());
+        EngineTranscriber::set_capture_active(false);
+        assert!(!EngineTranscriber::capture_active());
+    }
+
+    #[test]
+    fn the_microphone_can_be_chosen_by_name() {
+        let recorder = SystemRecorder::with_device(Some("  ".to_string()));
+        assert!(recorder.device.is_none(), "un nom vide = micro du système");
+        let recorder = SystemRecorder::with_device(Some("Blue Yeti".to_string()));
+        assert_eq!(recorder.device.as_deref(), Some("Blue Yeti"));
     }
 }

@@ -25,8 +25,13 @@ pub fn get_prefs(state: State<'_, AppState>) -> Prefs {
 /// Le front n'envoie que ce qu'il change (`{"appLanguage":"fr"}`) : les autres
 /// champs gardent leur valeur, y compris ceux qu'un ancien front ne connaît pas.
 #[tauri::command]
-pub fn set_prefs(state: State<'_, AppState>, patch: Value) -> Result<Prefs, String> {
+pub fn set_prefs(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    patch: Value,
+) -> Result<Prefs, String> {
     let mut current = state.prefs();
+    let previous = current.clone();
     let mut merged = serde_json::to_value(&*current)
         .map_err(|error| format!("réglages illisibles : {error}"))?;
     merge_value(&mut merged, patch);
@@ -35,6 +40,10 @@ pub fn set_prefs(state: State<'_, AppState>, patch: Value) -> Result<Prefs, Stri
     next.save()
         .map_err(|error| format!("réglages non enregistrés : {error}"))?;
     *current = next.clone();
+    drop(current);
+    if crate::dictation::needs_reload(&previous, &next) {
+        crate::dictation::reload(app, &next);
+    }
     Ok(next)
 }
 
@@ -230,6 +239,9 @@ pub fn quit(app: AppHandle) {
 pub struct UiEnv {
     /// `PLUME_THEME=dark` (ou `light`) force `data-theme` ; sinon `null`.
     pub theme: Option<String>,
+    /// `PLUME_DEMO=<état>` : la page peut jouer un état de démonstration
+    /// (captures d'écran) ; sinon `null`.
+    pub demo: Option<String>,
 }
 
 #[tauri::command]
@@ -239,6 +251,10 @@ pub fn ui_env() -> UiEnv {
             .ok()
             .map(|theme| theme.trim().to_ascii_lowercase())
             .filter(|theme| theme == "dark" || theme == "light"),
+        demo: std::env::var("PLUME_DEMO")
+            .ok()
+            .map(|demo| demo.trim().to_string())
+            .filter(|demo| !demo.is_empty()),
     }
 }
 

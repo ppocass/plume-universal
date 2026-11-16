@@ -3,6 +3,8 @@
 
 mod commands;
 mod dictation;
+mod extra;
+mod models;
 mod state;
 
 use plume_core::store::prefs::PillStyle;
@@ -74,6 +76,12 @@ fn main() {
             // Quelle fenêtre montrer au démarrage : `PLUME_SHOW` (tests) sinon
             // l'assistant au premier lancement, sinon rien (zone de notification).
             match show_target(std::env::var("PLUME_SHOW").ok().as_deref()) {
+                Some("whatsnew") => {
+                    if let Err(error) = commands::open_window(app.handle().clone(), "whatsnew".into())
+                    {
+                        log::warn!("fenêtre Nouveautés : {error}");
+                    }
+                }
                 Some(label) => show_window(app.handle(), label),
                 None if onboarding => show_window(app.handle(), "onboarding"),
                 None => {}
@@ -92,6 +100,27 @@ fn main() {
             commands::open_window,
             commands::quit,
             commands::ui_env,
+            extra::system_check,
+            extra::list_mics,
+            extra::mic_test_start,
+            extra::mic_test_stop,
+            extra::list_models,
+            extra::recommend_model,
+            extra::download_model,
+            extra::cancel_download,
+            extra::delete_model,
+            extra::use_model,
+            extra::engine_status,
+            extra::get_vocabulary,
+            extra::set_vocabulary,
+            extra::leet_convert,
+            extra::rewrite_dictation,
+            extra::retry_dictation,
+            extra::copy_text,
+            extra::polish_test,
+            extra::set_dictation_key_capture,
+            extra::get_whats_new,
+            extra::mark_whats_new_seen,
         ])
         .run(tauri::generate_context!())
         .expect("Plume n'a pas pu démarrer");
@@ -103,6 +132,7 @@ fn show_target(value: Option<&str>) -> Option<&'static str> {
     match value.map(str::trim) {
         Some("main") => Some("main"),
         Some("onboarding") => Some("onboarding"),
+        Some("whatsnew") => Some("whatsnew"),
         Some("pill") => Some("pill"),
         _ => None,
     }
@@ -232,8 +262,9 @@ mod tests {
     fn main_plume_show_ne_garde_que_les_fenetres_connues() {
         assert_eq!(show_target(Some("main")), Some("main"));
         assert_eq!(show_target(Some(" onboarding ")), Some("onboarding"));
+        assert_eq!(show_target(Some("whatsnew")), Some("whatsnew"));
         assert_eq!(show_target(Some("pill")), Some("pill"));
-        assert_eq!(show_target(Some("whatsnew")), None);
+        assert_eq!(show_target(Some("nawak")), None);
         assert_eq!(show_target(None), None);
     }
 

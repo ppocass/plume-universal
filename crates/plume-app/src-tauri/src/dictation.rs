@@ -9,7 +9,7 @@ use std::sync::mpsc::Receiver;
 use std::time::{Duration, Instant};
 
 use chrono::Utc;
-use plume_core::controller::{channel, Controller, Event, Phase, Settings};
+use plume_core::controller::{channel, Controller, Event, ParakeetTranscriber, Phase, Settings};
 use plume_core::store::prefs::{DictationLanguage, LeetLevel, PolishService};
 use plume_core::store::{paths, Dictation, Prefs};
 use plume_core::text::{Level, PolishConfig};
@@ -18,9 +18,6 @@ use tauri::{AppHandle, Emitter, Manager};
 use uuid::Uuid;
 
 use crate::state::AppState;
-
-/// Le modèle Parakeet, sous `<données>/models/parakeet-v3`.
-pub const MODEL_FOLDER: &str = "parakeet-v3";
 
 /// Les durées d'affichage de la pastille (`DictationController.swift`) :
 /// collé 0,9 s, message 1,6 s, annulé tout de suite.
@@ -84,8 +81,7 @@ pub struct PhasePayload {
 
 /// Les réglages du chef d'orchestre, construits depuis `Prefs`.
 pub fn settings_from_prefs(prefs: &Prefs) -> Settings {
-    let data = paths::data_dir();
-    let mut settings = Settings::new(model_dir());
+    let mut settings = Settings::new(model_dir_for(prefs));
     settings.key = prefs.dictation_key();
     settings.leet_key = Some(prefs.leet_key());
     // `-1` = jamais arrêté ; une année tient lieu d'infini sans risquer un
@@ -96,7 +92,9 @@ pub fn settings_from_prefs(prefs: &Prefs) -> Settings {
         prefs.idle_seconds as u64
     };
     settings.polish = polish_from_prefs(prefs);
-    settings.vocabulary = Some(data.join("vocabulaire.json"));
+    // Le même fichier que `get_vocabulary` / `set_vocabulary` : les mots
+    // ajoutés dans les réglages s'appliquent à la dictée suivante.
+    settings.vocabulary = Some(crate::extra::vocabulary_path());
     settings.lang = match prefs.language {
         DictationLanguage::Auto => "auto",
         DictationLanguage::Fr => "fr",
@@ -115,9 +113,29 @@ pub fn settings_from_prefs(prefs: &Prefs) -> Settings {
     settings
 }
 
-/// `<données>/models/parakeet-v3` (`PLUME_DATA_DIR` compris).
-pub fn model_dir() -> PathBuf {
-    paths::models_dir().join(MODEL_FOLDER)
+/// `<données>/models/<prefs.model>` : le modèle choisi (Parakeet par défaut).
+pub fn model_dir_for(prefs: &Prefs) -> PathBuf {
+    paths::models_dir().join(&prefs.model)
+}
+
+/// Deux réglages demandent-ils une relance du chef d'orchestre ?
+///
+/// Ce sont exactement les champs que `settings_from_prefs` transmet au cœur :
+/// touche de dictée, modificateur 1337, langue, modèle, lissage, veille,
+/// niveau 1337 et micro.
+pub fn needs_reload(previous: &Prefs, next: &Prefs) -> bool {
+    previous.dictation_key != next.dictation_key
+        || previous.leet_key != next.leet_key
+        || previous.leet_level != next.leet_level
+        || previous.language != next.language
+        || previous.model != next.model
+        || previous.mic_device != next.mic_device
+        || previous.idle_seconds != next.idle_seconds
+        || previous.polish_enabled != next.polish_enabled
+        || previous.polish_service != next.polish_service
+        || previous.polish_custom_url != next.polish_custom_url
+        || previous.polish_model != next.polish_model
+        || previous.polish_api_key != next.polish_api_key
 }
 
 /// Le lissage, seulement quand il y a de quoi l'appeler (service, adresse,
@@ -144,21 +162,36 @@ fn polish_from_prefs(prefs: &Prefs) -> Option<PolishConfig> {
 /// Démarre le chef d'orchestre et le fil qui relaie ses événements.
 pub fn spawn(app: AppHandle, prefs: &Prefs) {
     let settings = settings_from_prefs(prefs);
-    if !settings.model_dir.join("encoder.int8.onnx").is_file() {
+    let mic = prefs.mic_device.clone();
+    let has_model = std::fs::read_dir(&settings.model_dir)
+        .map(|entries| {
+            entries
+                .filter_map(|entry| entry.ok())
+                .any(|entry| {
+                    entry
+                        .path()
+                        .extension()
+                        .map(|ext| ext.to_string_lossy() == "onnx")
+                        .unwrap_or(false)
+                })
+        })
+        .unwrap_or(false);
+    if !has_model {
         // Pas de modèle : l'app reste ouverte, la dictée dira simplement
         // qu'elle ne peut pas transcrire.
         log::warn!(
-            "modèle Parakeet absent ({}) : l'app reste ouverte",
+            "modèle absent ({}) : l'app reste ouverte",
             settings.model_dir.display()
         );
     }
 
+    let generation = ParakeetTranscriber::next_generation();
     let (sender, receiver) = channel();
     let spawned = std::thread::Builder::new()
         .name("plume-dictee".into())
         .spawn(move || {
-            let mut controller = Controller::system(settings, sender);
-            if let Err(error) = controller.run() {
+            let mut controller = Controller::system_with_mic(settings, sender, mic);
+            if let Err(error) = controller.run_generation(generation) {
                 log::warn!("écoute de la dictée arrêtée : {error:#}");
             }
         });
@@ -173,6 +206,14 @@ pub fn spawn(app: AppHandle, prefs: &Prefs) {
     {
         log::error!("fil des événements : {error}");
     }
+}
+
+/// Relance le chef d'orchestre avec de nouveaux réglages, sans redémarrer
+/// l'app : l'ancienne boucle s'arrête à la première touche (elle n'agit plus),
+/// et la nouvelle écoute avec les réglages à jour.
+pub fn reload(app: AppHandle, prefs: &Prefs) {
+    log::info!("réglages de dictée modifiés : relance du chef d'orchestre");
+    spawn(app, prefs);
 }
 
 /// Relaie les événements du chef d'orchestre vers le front et la pastille.
@@ -318,6 +359,46 @@ mod tests {
         assert_eq!(settings.lang, "fr");
         assert_eq!(settings.leet_level, Level::Full);
         assert!(settings.polish.is_none());
+    }
+
+    #[test]
+    fn dictation_model_dir_suit_le_modele_choisi() {
+        let mut prefs = Prefs::default();
+        assert!(model_dir_for(&prefs).ends_with("models/parakeet-v3"));
+        prefs.model = "whisper-base".into();
+        assert!(model_dir_for(&prefs).ends_with("models/whisper-base"));
+    }
+
+    #[test]
+    fn dictation_needs_reload_only_for_live_settings() {
+        let prefs = Prefs::default();
+        assert!(!needs_reload(&prefs, &prefs), "rien de changé");
+
+        let mut key = prefs.clone();
+        key.dictation_key = "f9".into();
+        assert!(needs_reload(&prefs, &key));
+
+        let mut model = prefs.clone();
+        model.model = "whisper-small".into();
+        assert!(needs_reload(&prefs, &model));
+
+        let mut mic = prefs.clone();
+        mic.mic_device = Some("Blue Yeti".into());
+        assert!(needs_reload(&prefs, &mic));
+
+        let mut polish = prefs.clone();
+        polish.polish_api_key = "sk-test".into();
+        assert!(needs_reload(&prefs, &polish));
+
+        let mut idle = prefs.clone();
+        idle.idle_seconds = 120.0;
+        assert!(needs_reload(&prefs, &idle));
+
+        // L'apparence ou la langue de l'interface ne relancent pas la dictée.
+        let mut look = prefs.clone();
+        look.appearance = plume_core::store::prefs::AppAppearance::Dark;
+        look.app_language = plume_core::store::prefs::AppLanguage::Fr;
+        assert!(!needs_reload(&prefs, &look));
     }
 
     #[test]
