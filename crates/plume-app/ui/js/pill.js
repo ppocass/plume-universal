@@ -397,6 +397,20 @@ async function boot() {
     }
   }
 
+  // TEMP PROBE
+  let probeText = "no-tauri";
+  try {
+    const { getCurrentWindow, LogicalSize } = window.__TAURI__.window;
+    const w = getCurrentWindow();
+    await w.setSize(new LogicalSize(482, 122));
+    const inner = await w.innerSize();
+    probeText = "OK " + inner.width + "x" + inner.height;
+  } catch (e) {
+    probeText = "before " + window.innerWidth + "x" + window.innerHeight;
+    window.resizeTo(482, 122);
+    await new Promise((r) => setTimeout(r, 400));
+    probeText += " after " + window.innerWidth + "x" + window.innerHeight;
+  }
   state.demo = env?.demo ?? null;
   await initI18n(prefs);
   await initTheme(prefs);
@@ -453,6 +467,7 @@ async function boot() {
       await fitWindow(true);
     }
     setPhase(demo, { text: demo === "popup" ? DEMO_TEXT : undefined });
+    if (demo === "popup") { popupBody.textContent = probeText; }
   } else {
     stage.dataset.phase = "hidden";
     stage.dataset.shown = "false";
