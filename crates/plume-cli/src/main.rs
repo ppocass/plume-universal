@@ -33,6 +33,12 @@ fn main() {
                 std::process::exit(1);
             }
         }
+        Some("run") => {
+            if let Err(error) = run(&args[1..]) {
+                eprintln!("erreur : {error:#}");
+                std::process::exit(1);
+            }
+        }
         _ => {
             eprintln!("usage : plume-cli <commande> …");
             std::process::exit(2);
@@ -220,6 +226,121 @@ fn record(args: &[String]) -> anyhow::Result<()> {
         path
     );
     Ok(())
+}
+
+// --- controller : la dictée de bout en bout ---
+
+/// `plume-cli run --model <dossier> [--key AltLeft] [--polish-url URL --polish-model M]` :
+/// Plume sans interface — on appuie sur la touche, on parle, le texte est collé
+/// au curseur. Les phases partent sur stderr ; Ctrl-C quitte.
+///
+/// Le lissage prend sa clé dans `PLUME_POLISH_KEY` (comme `plume-cli polish`).
+fn run(args: &[String]) -> anyhow::Result<()> {
+    use plume_core::controller::{channel, Controller, Settings};
+    use plume_core::input::gesture::Key;
+    use plume_core::text::PolishConfig;
+
+    const USAGE: &str = "usage : plume-cli run --model <dossier> [--key AltLeft] \
+                         [--polish-url URL --polish-model M]";
+
+    let mut model: Option<String> = None;
+    let mut key: Option<Key> = None;
+    let mut polish_url: Option<String> = None;
+    let mut polish_model: Option<String> = None;
+
+    let mut index = 0;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--model" => {
+                model = Some(option_value(args, index, USAGE)?.to_string());
+                index += 2;
+            }
+            "--key" => {
+                key = Some(key_from_name(option_value(args, index, USAGE)?)?);
+                index += 2;
+            }
+            "--polish-url" => {
+                polish_url = Some(option_value(args, index, USAGE)?.to_string());
+                index += 2;
+            }
+            "--polish-model" => {
+                polish_model = Some(option_value(args, index, USAGE)?.to_string());
+                index += 2;
+            }
+            other => anyhow::bail!("option inconnue « {other} » ({USAGE})"),
+        }
+    }
+
+    let model = model.ok_or_else(|| anyhow::anyhow!("--model manquant ({USAGE})"))?;
+    let mut settings = Settings::new(&model);
+    if let Some(key) = key {
+        settings.key = key;
+    }
+    match (polish_url, polish_model) {
+        (Some(url), Some(model)) => {
+            let api_key = std::env::var("PLUME_POLISH_KEY")
+                .ok()
+                .filter(|key| !key.is_empty());
+            settings.polish = Some(PolishConfig::new(url, model, api_key));
+        }
+        (None, None) => {}
+        (Some(_), None) => anyhow::bail!("--polish-model manquant ({USAGE})"),
+        (None, Some(_)) => anyhow::bail!("--polish-url manquant ({USAGE})"),
+    }
+
+    let (sender, events) = channel();
+    std::thread::Builder::new()
+        .name("plume-phases".into())
+        .spawn(move || print_events(events))?;
+
+    let mut controller = Controller::system(settings, sender);
+    let gesture = controller.gesture_config();
+    eprintln!(
+        "geste : {} (1337 : {}) — Ctrl-C pour quitter",
+        gesture.key.name(),
+        gesture
+            .leet_key
+            .map(Key::name)
+            .unwrap_or_else(|| "aucun".into())
+    );
+    controller.run()
+}
+
+/// La valeur qui suit une option (`--model <dossier>`), avec le mode d'emploi.
+fn option_value<'a>(args: &'a [String], index: usize, usage: &str) -> anyhow::Result<&'a str> {
+    args.get(index + 1)
+        .map(String::as_str)
+        .ok_or_else(|| anyhow::anyhow!("valeur manquante pour {} ({usage})", args[index]))
+}
+
+/// Les événements sur stderr, une ligne par phase (les niveaux, 20 par seconde,
+/// ne sont pas affichés).
+fn print_events(events: std::sync::mpsc::Receiver<plume_core::controller::Event>) {
+    use plume_core::controller::Event;
+
+    for event in events {
+        match event {
+            Event::Phase(phase) => eprintln!("{}", phase_line(&phase)),
+            Event::Text(text) => eprintln!("texte : {text}"),
+            Event::Level(_) => {}
+        }
+    }
+}
+
+/// La phase en une ligne, pour le terminal.
+fn phase_line(phase: &plume_core::controller::Phase) -> String {
+    use plume_core::controller::Phase;
+
+    match phase {
+        Phase::Idle => "inactif".to_string(),
+        Phase::Recording => "enregistrement…".to_string(),
+        Phase::Processing => "traitement…".to_string(),
+        Phase::Done { pasted: true } => "collé".to_string(),
+        Phase::Done { pasted: false } => "texte prêt (non collé)".to_string(),
+        Phase::Cancelled => "annulé".to_string(),
+        Phase::Rejected(reason) => format!("rien à transcrire ({reason})"),
+        Phase::Error(error) => format!("erreur : {error}"),
+    }
 }
 
 fn key_from_name(name: &str) -> anyhow::Result<plume_core::input::gesture::Key> {

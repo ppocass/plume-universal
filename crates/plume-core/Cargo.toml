@@ -23,9 +23,20 @@ url = "2"
 cpal = "0.15"
 arboard = "3"
 rdev = { git = "https://github.com/rustdesk-org/rdev" }
+# --- store ---
+# Dossiers XDG / APPDATA (dirs), dates ISO 8601 des fichiers JSON (chrono),
+# identifiants des dictées (uuid) — les mêmes formats que l'app macOS.
+dirs = "5"
+chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
+uuid = { version = "1", features = ["v4", "serde"] }
 
 # Windows : le Ctrl+V du collage (SendInput). Rien à compiler sous Linux.
 [target.'cfg(windows)'.dependencies]
 enigo = "0.6"
 # --- controller ---
+
+# Tests : un dossier de données temporaire, posé dans PLUME_DATA_DIR.
+[dev-dependencies]
 # --- store ---
+tempfile = "3"
+
