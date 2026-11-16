@@ -4,6 +4,7 @@
 // démonstration (`PLUME_DEMO`) elles sont simulées.
 
 import { t, currentLanguage } from "../js/i18n.js";
+import { keyLabel } from "../js/keys.js";
 import { invoke } from "../js/tauri.js";
 import { hydrateIcons } from "../js/icons.js";
 
@@ -54,49 +55,6 @@ async function readDemo() {
     return parseDemo(env?.demo);
   } catch {
     return null;
-  }
-}
-
-function shortcutLabel(name) {
-  const key = String(name || "")
-    .toLowerCase()
-    .replace(/[-_\s]/g, "");
-  switch (key) {
-    case "altleft":
-    case "alt":
-    case "option":
-    case "optionleft":
-      return t("left_opt");
-    case "altright":
-    case "altr":
-    case "altgr":
-    case "optionright":
-      return t("right_opt");
-    case "controlleft":
-    case "ctrll":
-      return t("left_ctrl");
-    case "controlright":
-    case "ctrlr":
-      return t("right_ctrl");
-    case "shiftleft":
-    case "shiftl":
-      return t("left_shift");
-    case "shiftright":
-    case "shiftr":
-      return t("right_shift");
-    case "metaleft":
-    case "meta":
-    case "cmd":
-    case "super":
-      return t("left_cmd");
-    case "metaright":
-    case "cmdr":
-    case "superr":
-      return t("right_cmd");
-    default: {
-      const match = key.match(/^f(\d{1,2})$/);
-      return match ? `F${match[1]}` : t("left_opt");
-    }
   }
 }
 
@@ -647,7 +605,7 @@ function emptyState() {
     el(
       "div",
       "empty-detail",
-      t("press_shortcut_to_start", { shortcut: shortcut || t("left_opt") }),
+      t("press_shortcut_to_start", { shortcut: shortcut || keyLabel("") }),
     ),
   );
   return box;
@@ -786,7 +744,7 @@ async function start(root, state) {
   isDemo = Boolean(state);
   const data = await loadData(state);
   items = data.history;
-  shortcut = shortcutLabel(data.prefs?.dictationKey);
+  shortcut = keyLabel(data.prefs?.dictationKey);
   renderPage(root);
   await hydrateIcons(root);
 

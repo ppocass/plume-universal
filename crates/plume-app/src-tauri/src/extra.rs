@@ -330,7 +330,7 @@ pub fn recommend_model(
 
     let reason_key = models::model(&id)
         .map(|def| def.description_key.to_string())
-        .unwrap_or_else(|| "recommended_for_this_mac".to_string());
+        .unwrap_or_else(|| "recommended_for_this_computer".to_string());
     Recommendation {
         id,
         reason_key,
@@ -1217,6 +1217,71 @@ mod tests {
             }
         }
         assert_eq!(WHATS_NEW_ITEMS.len(), 3);
+    }
+
+    /// Les deux traductions ont le même jeu de clés, et rien n'y parle plus du
+    /// Mac : ce portage est Linux/Windows (« This computer », « Alt gauche »).
+    #[test]
+    fn les_traductions_ne_parlent_plus_du_mac() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../ui/i18n");
+        let mut keys: Vec<Vec<String>> = Vec::new();
+        for language in ["en", "fr"] {
+            let raw = std::fs::read_to_string(root.join(format!("{language}.json")))
+                .expect("fichier de traduction");
+            let strings: serde_json::Value = serde_json::from_str(&raw).expect("JSON");
+            let object = strings.as_object().expect("objet");
+            let mut own: Vec<String> = object.keys().cloned().collect();
+            own.sort();
+            keys.push(own);
+            for (key, value) in object {
+                let text = value.as_str().expect("chaîne");
+                assert!(
+                    !text.contains("Neural Engine"),
+                    "{language} : {key} parle encore de Neural Engine"
+                );
+                for forbidden in ["this Mac", "This Mac", "your Mac", "ce Mac", "votre Mac"] {
+                    assert!(
+                        !text.contains(forbidden),
+                        "{language} : {key} dit encore « {forbidden} »"
+                    );
+                }
+            }
+        }
+        assert_eq!(keys[0], keys[1], "les clés en/fr diffèrent");
+    }
+
+    /// Les libellés de touche sont ceux de Linux/Windows, jamais les symboles
+    /// du Mac (`⌥`, `⌘`, « Left ⌥ »).
+    #[test]
+    fn les_libelles_de_touche_sont_ceux_de_linux() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../ui/i18n");
+        for language in ["en", "fr"] {
+            let raw = std::fs::read_to_string(root.join(format!("{language}.json")))
+                .expect("fichier de traduction");
+            let strings: serde_json::Value = serde_json::from_str(&raw).expect("JSON");
+            let object = strings.as_object().expect("objet");
+            for key in [
+                "key_left_alt",
+                "key_right_alt",
+                "key_left_ctrl",
+                "key_right_ctrl",
+                "key_super",
+                "key_right_super",
+            ] {
+                let label = object[key].as_str().expect("libellé");
+                assert!(!label.is_empty(), "{language} : {key}");
+                for symbol in ['⌥', '⌘', '⌃', '⇧'] {
+                    assert!(!label.contains(symbol), "{language} : {key} = {label}");
+                }
+            }
+            let alt = object["key_left_alt"].as_str().unwrap();
+            assert!(alt.contains("Alt"), "{language} : {alt}");
+            let super_label = object["key_super"].as_str().unwrap();
+            assert!(
+                super_label.contains("Super"),
+                "{language} : {super_label}"
+            );
+        }
     }
 
     #[test]

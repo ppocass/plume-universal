@@ -24,10 +24,9 @@ const BAR_GAP = 2.5;
 const BARS_WIDTH = BAR_COUNT * BAR_WIDTH + (BAR_COUNT - 1) * BAR_GAP; // 69
 const BARS_HEIGHT = 22;
 
-// Les deux emplacements de la fenêtre de la pastille (§3.1) : la pastille
-// ordinaire (320 × 64 + 26 d'ombre) et le pop-up (430 × 96 + 26).
-const WINDOW_PILL = { width: 320, height: 90 };
-const WINDOW_POPUP = { width: 482, height: 122 };
+// La fenêtre de la pastille est dimensionnée côté Rust (§3.1, `pill.rs`) :
+// 320 × 64 de carte pour la pastille, 430 × 96 pour le pop-up, plus les marges
+// d'ombre. Ici on ne fait que demander la bonne des deux (`pill_resize`).
 
 // Le mouvement de §3.10.
 const MOTION_IN = { duration: 340, easing: "cubic-bezier(0.33, 1, 0.68, 1)" };
@@ -190,17 +189,23 @@ export function previewOf(text) {
   return `${words.slice(0, PREVIEW_WORDS).join(" ")}…`;
 }
 
-/** Ajuste la fenêtre à la carte : pastille ou pop-up (`panelSize`, §3.1). */
+/**
+ * Donne à la fenêtre la taille de la carte qu'elle montre (`panelSize`, §3.1)
+ * et la recentre.
+ *
+ * C'est le Rust qui redimensionne (`pill_resize`) : le front n'a pas la
+ * permission `setSize` sous Linux/Windows, et la position dépend de la zone de
+ * travail du moniteur (barre des tâches). Un appel par changement de carte,
+ * avant l'affichage — sinon le pop-up reste rogné à 320 pt.
+ */
 async function fitWindow(popup) {
   if (!hasTauri()) {
     return;
   }
-  const size = popup ? WINDOW_POPUP : WINDOW_PILL;
   try {
-    const { getCurrentWindow, LogicalSize } = window.__TAURI__.window;
-    await getCurrentWindow().setSize(new LogicalSize(size.width, size.height));
+    await invoke("pill_resize", { preview: Boolean(popup) });
   } catch (error) {
-    // Permission absente : la carte se resserre d'elle-même (CSS `min()`).
+    // Sans la commande, la carte se resserre d'elle-même (CSS `min()`).
     console.debug("taille de la pastille :", error);
   }
 }
@@ -397,20 +402,6 @@ async function boot() {
     }
   }
 
-  // TEMP PROBE
-  let probeText = "no-tauri";
-  try {
-    const { getCurrentWindow, LogicalSize } = window.__TAURI__.window;
-    const w = getCurrentWindow();
-    await w.setSize(new LogicalSize(482, 122));
-    const inner = await w.innerSize();
-    probeText = "OK " + inner.width + "x" + inner.height;
-  } catch (e) {
-    probeText = "before " + window.innerWidth + "x" + window.innerHeight;
-    window.resizeTo(482, 122);
-    await new Promise((r) => setTimeout(r, 400));
-    probeText += " after " + window.innerWidth + "x" + window.innerHeight;
-  }
   state.demo = env?.demo ?? null;
   await initI18n(prefs);
   await initTheme(prefs);
@@ -467,7 +458,6 @@ async function boot() {
       await fitWindow(true);
     }
     setPhase(demo, { text: demo === "popup" ? DEMO_TEXT : undefined });
-    if (demo === "popup") { popupBody.textContent = probeText; }
   } else {
     stage.dataset.phase = "hidden";
     stage.dataset.shown = "false";

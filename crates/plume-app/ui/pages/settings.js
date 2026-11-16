@@ -5,6 +5,7 @@
 // choix du micro, position de la pastille, touche de dictée capturée.
 
 import { applyI18n, initI18n, t } from "../js/i18n.js";
+import { keyChoices, keyLabel } from "../js/keys.js";
 import { hydrateIcons } from "../js/icons.js";
 import { initTheme } from "../js/theme.js";
 import { hasTauri, invoke, listen } from "../js/tauri.js";
@@ -52,31 +53,6 @@ function el(tag, className = "", text = null) {
   return node;
 }
 
-function keyLabel(name) {
-  const labels = {
-    altl: "key_left_alt",
-    altr: "key_right_alt",
-    altleft: "key_left_alt",
-    altright: "key_right_alt",
-    ctrll: "key_left_ctrl",
-    ctrlr: "key_right_ctrl",
-    controlleft: "key_left_ctrl",
-    controlright: "key_right_ctrl",
-    shiftl: "key_left_shift",
-    shiftr: "key_right_shift",
-    shiftleft: "key_left_shift",
-    shiftright: "key_right_shift",
-    super: "key_super",
-    superr: "key_right_super",
-    metaleft: "key_super",
-    metaright: "key_right_super",
-    cmd: "key_super",
-    win: "key_super",
-  };
-  const raw = String(name || "");
-  const key = raw.toLowerCase().replace(/[_\s-]/g, "");
-  return labels[key] ? t(labels[key]) : raw;
-}
 
 function idleLabel(seconds) {
   if (seconds < 0) {
@@ -288,16 +264,7 @@ function renderPickers() {
       onChange: (value) => save({ idleSeconds: Number(value) }),
     },
     leetKey: {
-      options: [
-        ["super", keyLabel("super")],
-        ["super_r", keyLabel("super_r")],
-        ["ctrl_l", keyLabel("ctrl_l")],
-        ["ctrl_r", keyLabel("ctrl_r")],
-        ["alt_l", keyLabel("alt_l")],
-        ["alt_r", keyLabel("alt_r")],
-        ["shift_l", keyLabel("shift_l")],
-        ["shift_r", keyLabel("shift_r")],
-      ].map(([value, label]) => ({ value, label })),
+      options: keyChoices().map(([value, label]) => ({ value, label })),
       value: prefs?.leetKey || "super",
       onChange: (value) => save({ leetKey: value }),
     },

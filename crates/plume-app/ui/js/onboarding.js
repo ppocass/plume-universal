@@ -7,6 +7,7 @@
 // "step=6-downloading".
 
 import { applyI18n, initI18n, t } from "./i18n.js";
+import { keyLabel } from "./keys.js";
 import { hydrateIcons } from "./icons.js";
 import { initTheme } from "./theme.js";
 import { closeCurrentWindow, hasTauri, invoke, listen } from "./tauri.js";
@@ -197,45 +198,6 @@ function modelLabel(model) {
   return label;
 }
 
-const KEY_LABELS = {
-  altl: "key_left_alt",
-  altleft: "key_left_alt",
-  alt: "key_left_alt",
-  option: "key_left_alt",
-  altr: "key_right_alt",
-  altright: "key_right_alt",
-  altgr: "key_right_alt",
-  ctrll: "key_left_ctrl",
-  controlleft: "key_left_ctrl",
-  ctrlr: "key_right_ctrl",
-  controlright: "key_right_ctrl",
-  shiftl: "key_left_shift",
-  shiftleft: "key_left_shift",
-  shiftr: "key_right_shift",
-  shiftright: "key_right_shift",
-  super: "key_super",
-  metaleft: "key_super",
-  meta: "key_super",
-  cmd: "key_super",
-  superr: "key_right_super",
-  metaright: "key_right_super",
-};
-
-function keyLabel(name) {
-  const raw = String(name ?? "").trim();
-  if (!raw) {
-    return t("key_left_alt");
-  }
-  const nameKey = KEY_LABELS[raw.toLowerCase()];
-  if (nameKey) {
-    return t(nameKey);
-  }
-  const fKey = /^f(\d{1,2})$/i.exec(raw);
-  if (fKey) {
-    return `F${fKey[1]}`;
-  }
-  return raw;
-}
 
 // --- Réglages --------------------------------------------------------------
 
@@ -764,9 +726,17 @@ function contentModel(container) {
 
     if (!chosen.installed) {
       const download = h("div", { class: "download" });
-      const button = h("button", { type: "button", class: "btn-soft", text: t("download") });
-      button.disabled = Boolean(state.downloading);
-      button.addEventListener("click", () => startDownload(chosen.id));
+      // Pendant le téléchargement, le bouton devient « Annuler » et appelle
+      // `cancel_download` — même comportement que la page Modèles.
+      const busy = Boolean(state.downloading);
+      const button = h("button", {
+        type: "button",
+        class: "btn-soft",
+        text: busy ? t("cancel") : t("download"),
+      });
+      button.addEventListener("click", () =>
+        busy ? cancelDownload(chosen.id) : startDownload(chosen.id),
+      );
       download.append(button);
 
       if (state.progress && state.progress.id === chosen.id) {
@@ -1101,6 +1071,21 @@ async function startDownload(id) {
       await renderPage(false);
     }
   }
+}
+
+/** Annule le téléchargement en cours (`cancel_download`, comme Modèles). */
+async function cancelDownload(id) {
+  const model = modelById(id);
+  if (hasTauri() && !state.demo) {
+    try {
+      await invoke("cancel_download", { id });
+    } catch (error) {
+      state.downloadError = String(error);
+    }
+  }
+  state.downloading = null;
+  state.progress = null;
+  await renderPage(false);
 }
 
 function updateProgressUi() {

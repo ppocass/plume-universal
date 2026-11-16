@@ -179,6 +179,13 @@ body {
   height: 7px;
 }
 
+/* Collé : la carte ne montre **que** le ✓. Les barres disparaissent (sur le
+   Mac, `content` ne rend que l'image du ✓), donc la capsule se resserre à
+   30 + 2 × 12 = 54 pt de large (§3.2, §3.7). */
+.pill-stage[data-phase="pasted"] .pill-bars-wrap {
+  display: none;
+}
+
 /* Le ✓ « collé » : 13 pt gras dans --done, cadre de 30 × 18 (§3.7). */
 .pill-check {
   display: none;
@@ -274,9 +281,9 @@ body {
   display: none;
   flex-direction: column;
   gap: 6px;
-  /* 430 pt sur le Mac ; la fenêtre de la pastille fait 320 pt ici, donc la
-     carte se resserre entre ses deux marges d'ombre (26 pt de chaque côté).
-     Dès que la fenêtre fait 482 pt, c'est bien 430. */
+  /* 430 pt (§3.8). Le Rust redimensionne la fenêtre à 482 pt avant d'afficher
+     le pop-up (`pill_resize`), donc la carte tient entre ses deux marges
+     d'ombre ; le `min()` n'est qu'un filet si la fenêtre n'a pas suivi. */
   width: min(430px, calc(100vw - 52px));
   padding: 10px 14px;
   border-radius: var(--radius-popup);

@@ -5,19 +5,14 @@ mod commands;
 mod dictation;
 mod extra;
 mod models;
+mod pill;
 mod state;
 
-use plume_core::store::prefs::PillStyle;
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::TrayIconBuilder;
 use tauri::{AppHandle, Emitter, Manager};
 
 use state::AppState;
-
-/// Largeur logique de la fenêtre de la pastille (`§3.1` : 320 × 90 avec les
-/// marges d'ombre).
-const PILL_WIDTH: f64 = 320.0;
-const PILL_HEIGHT: f64 = 90.0;
 
 fn main() {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
@@ -71,7 +66,9 @@ fn main() {
             // La dictée : le chef d'orchestre du cœur, ses événements, l'historique.
             dictation::spawn(app.handle().clone(), &prefs);
 
-            position_pill(app.handle());
+            // La pastille : taille et position de repos (style des réglages).
+            let style = app.state::<AppState>().prefs().pill_style;
+            pill::place(app.handle(), style, false);
 
             // Quelle fenêtre montrer au démarrage : `PLUME_SHOW` (tests) sinon
             // l'assistant au premier lancement, sinon rien (zone de notification).
@@ -100,6 +97,7 @@ fn main() {
             commands::open_window,
             commands::quit,
             commands::ui_env,
+            commands::pill_resize,
             extra::system_check,
             extra::list_mics,
             extra::mic_test_start,
@@ -149,33 +147,6 @@ fn show_window(app: &AppHandle, label: &str) {
     }
     if label != "pill" {
         let _ = window.set_focus();
-    }
-}
-
-/// Place la pastille en haut (bord supérieur collé à l'écran, `§3.1`) ou en bas
-/// au-dessus du Dock, selon `Prefs.pillStyle`.
-fn position_pill(app: &AppHandle) {
-    let Some(window) = app.get_webview_window("pill") else {
-        return;
-    };
-    let style = app.state::<AppState>().prefs().pill_style;
-    let Ok(Some(monitor)) = app.primary_monitor() else {
-        return;
-    };
-    let scale = monitor.scale_factor();
-    let screen_width = monitor.size().width as f64 / scale;
-    let screen_height = monitor.size().height as f64 / scale;
-    let x = ((screen_width - PILL_WIDTH) / 2.0).round();
-    let y = pill_y(style, screen_height);
-    let _ = window.set_position(tauri::LogicalPosition::new(x, y));
-}
-
-/// L'ordonnée logique de la fenêtre de la pastille.
-fn pill_y(style: PillStyle, screen_height: f64) -> f64 {
-    if style.hangs_from_top() {
-        0.0
-    } else {
-        (screen_height - PILL_HEIGHT - 14.0).max(0.0)
     }
 }
 
@@ -266,13 +237,5 @@ mod tests {
         assert_eq!(show_target(Some("pill")), Some("pill"));
         assert_eq!(show_target(Some("nawak")), None);
         assert_eq!(show_target(None), None);
-    }
-
-    #[test]
-    fn main_pastille_en_haut_ou_en_bas() {
-        assert_eq!(pill_y(PillStyle::Top, 800.0), 0.0);
-        assert_eq!(pill_y(PillStyle::Bottom, 800.0), 696.0);
-        // Un écran plus court que la pastille ne donne pas d'ordonnée négative.
-        assert_eq!(pill_y(PillStyle::Bottom, 50.0), 0.0);
     }
 }

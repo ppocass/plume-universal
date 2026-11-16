@@ -176,7 +176,7 @@ function modelRow(view) {
   const title = el("div", "model-title");
   title.append(el("span", "model-name", view.name));
   if (view.recommended) {
-    title.append(el("span", "tag", t("recommended_for_this_mac")));
+    title.append(el("span", "tag", t("recommended_for_this_computer")));
   }
   text.append(title);
   if (view.descriptionKey) {

@@ -227,6 +227,17 @@ pub fn open_window(app: AppHandle, name: String) -> Result<(), String> {
     Ok(())
 }
 
+/// Donne à la fenêtre de la pastille la taille de ce qu'elle montre : la
+/// pastille ordinaire (320 × 64) ou le pop-up « rien à coller » (430 × 96),
+/// puis la recentre (`§3.1`). Le redimensionnement se fait ici, côté Rust, au
+/// moment où le front change de carte — sans quoi la fenêtre reste à 320 pt et
+/// le pop-up est rogné.
+#[tauri::command]
+pub fn pill_resize(app: AppHandle, preview: bool) {
+    let style = app.state::<crate::state::AppState>().prefs().pill_style;
+    crate::pill::place(&app, style, preview);
+}
+
 /// Quitte Plume pour de bon (la zone de notification n'est pas un Dock).
 #[tauri::command]
 pub fn quit(app: AppHandle) {

@@ -3,6 +3,7 @@
 // Tout est local : `leet_convert` ne quitte jamais la machine.
 
 import { t } from "../js/i18n.js";
+import { keyChoices } from "../js/keys.js";
 import { hydrateIcons } from "../js/icons.js";
 import { hasTauri, invoke } from "../js/tauri.js";
 
@@ -30,34 +31,6 @@ function el(tag, className = "", text = null) {
     node.textContent = text;
   }
   return node;
-}
-
-/** Le libellé d'une touche (`alt_l`, `super`…) dans la langue de l'interface. */
-function keyLabel(name) {
-  const labels = {
-    altl: "key_left_alt",
-    altr: "key_right_alt",
-    altleft: "key_left_alt",
-    altright: "key_right_alt",
-    ctrll: "key_left_ctrl",
-    ctrlr: "key_right_ctrl",
-    controlleft: "key_left_ctrl",
-    controlright: "key_right_ctrl",
-    shiftl: "key_left_shift",
-    shiftr: "key_right_shift",
-    shiftleft: "key_left_shift",
-    shiftright: "key_right_shift",
-    super: "key_super",
-    superr: "key_right_super",
-    metaleft: "key_super",
-    metaright: "key_right_super",
-    cmd: "key_super",
-    win: "key_super",
-  };
-  const key = String(name || "")
-    .toLowerCase()
-    .replace(/[_\s-]/g, "");
-  return t(labels[key] || name);
 }
 
 /** Le menu déroulant macOS (pop-up button) : bouton + liste, sans focus ring. */
@@ -287,16 +260,7 @@ async function mount(node) {
 
   const slot = root.querySelector('[data-picker="leetKey"]');
   if (slot) {
-    const keys = [
-      ["super", keyLabel("super")],
-      ["super_r", keyLabel("super_r")],
-      ["ctrl_l", keyLabel("ctrl_l")],
-      ["ctrl_r", keyLabel("ctrl_r")],
-      ["alt_l", keyLabel("alt_l")],
-      ["alt_r", keyLabel("alt_r")],
-      ["shift_l", keyLabel("shift_l")],
-      ["shift_r", keyLabel("shift_r")],
-    ].map(([value, label]) => ({ value, label }));
+    const keys = keyChoices().map(([value, label]) => ({ value, label }));
     slot.append(
       picker(keys, prefs?.leetKey || "super", (value) => save({ leetKey: value })),
     );

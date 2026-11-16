@@ -239,14 +239,27 @@ pub fn parakeet_speaks(language: &str) -> bool {
     PARAKEET_LANGUAGES.contains(&base)
 }
 
+/// « Détection automatique » : l'utilisateur ne choisit pas de langue, et
+/// Parakeet sait reconnaître la sienne parmi ses 25 langues. Ce n'est donc pas
+/// une langue « hors Parakeet » — c'était le défaut de la première règle, qui
+/// envoyait la détection automatique sur Whisper Small.
+fn is_automatic(language: &str) -> bool {
+    matches!(
+        language.trim().to_ascii_lowercase().as_str(),
+        "" | "auto" | "automatic" | "automatic_detection"
+    )
+}
+
 /// La règle de `docs/ipc.md`, exactement :
 ///
 /// - langue dans les 25 de Parakeet → `parakeet-v3`, sauf RAM disponible
 ///   < 1,5 Go → `whisper-base` ;
+/// - « détection automatique » → `parakeet-v3` aussi : il détecte seul parmi
+///   ses 25 langues (c'est le modèle par défaut de Plume) ;
 /// - autre langue → `whisper-small` si RAM totale ≥ 8 Go **et** disponible
 ///   ≥ 2 Go, sinon `whisper-base`.
 pub fn recommend(language: &str, machine: &Machine) -> &'static str {
-    if parakeet_speaks(language) {
+    if is_automatic(language) || parakeet_speaks(language) {
         if machine.ram_available_gb < PARAKEET_MIN_AVAILABLE_GB {
             "whisper-base"
         } else {
@@ -351,8 +364,14 @@ mod tests {
         assert_eq!(recommend("ar", &machine(16.0, 1.9)), "whisper-base");
         // 7. Langue hors Parakeet, machine à 4 Go → base.
         assert_eq!(recommend("ja", &machine(4.0, 3.0)), "whisper-base");
-        // 8. `auto` n'est pas une des 25 langues → Whisper.
-        assert_eq!(recommend("auto", &machine(16.0, 8.0)), "whisper-small");
+        // 8. « Détection automatique » → Parakeet : il détecte seul parmi ses
+        //    25 langues. C'était le défaut relevé sur la capture Modèles, qui
+        //    affichait Whisper Small comme recommandé.
+        assert_eq!(recommend("auto", &machine(16.0, 8.0)), "parakeet-v3");
+        assert_eq!(recommend("", &machine(8.0, 4.0)), "parakeet-v3");
+        assert_eq!(recommend("Automatic", &machine(8.0, 4.0)), "parakeet-v3");
+        // 8 bis. La détection automatique garde le garde-fou de mémoire.
+        assert_eq!(recommend("auto", &machine(16.0, 1.4)), "whisper-base");
         // 9. La locale complète est ramenée à sa langue.
         assert_eq!(recommend("fr-FR", &machine(8.0, 4.0)), "parakeet-v3");
         assert_eq!(recommend("pt_BR", &machine(8.0, 4.0)), "parakeet-v3");
