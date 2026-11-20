@@ -223,13 +223,45 @@ fn show_window(app: &AppHandle, label: &str) {
 }
 
 /// La zone de notification : les entrées de `§4`, dans cet ordre.
+/// Les libellés du menu dans la langue de l'app (mêmes textes que `ui/i18n`).
+fn tray_labels(language: plume_core::store::prefs::AppLanguage) -> [&'static str; 6] {
+    match language {
+        plume_core::store::prefs::AppLanguage::Fr => [
+            "Démarrer la dictée",
+            "Copier la dernière dictée",
+            "Historique…",
+            "Réglages…",
+            "Soutenir Plume…",
+            "Quitter Plume",
+        ],
+        plume_core::store::prefs::AppLanguage::En => [
+            "Start Dictation",
+            "Copy Last Dictation",
+            "History…",
+            "Settings…",
+            "Support Plume…",
+            "Quit Plume",
+        ],
+    }
+}
+
+/// Refait le menu quand la langue de l'app change (assistant, Réglages).
+pub(crate) fn rebuild_tray(app: &AppHandle) {
+    let _ = app.remove_tray_by_id("plume-tray");
+    if let Err(error) = build_tray(app) {
+        log::warn!("zone de notification indisponible : {error}");
+    }
+}
+
 fn build_tray(app: &AppHandle) -> tauri::Result<()> {
-    let start = MenuItem::with_id(app, "dictation", "Start Dictation", true, None::<&str>)?;
-    let copy = MenuItem::with_id(app, "copy", "Copy Last Dictation", true, None::<&str>)?;
-    let history = MenuItem::with_id(app, "history", "History…", true, None::<&str>)?;
-    let settings = MenuItem::with_id(app, "settings", "Settings…", true, None::<&str>)?;
-    let support = MenuItem::with_id(app, "support", "Support Plume…", true, None::<&str>)?;
-    let quit = MenuItem::with_id(app, "quit", "Quit Plume", true, None::<&str>)?;
+    let language = app.state::<AppState>().prefs().app_language;
+    let [l_start, l_copy, l_history, l_settings, l_support, l_quit] = tray_labels(language);
+    let start = MenuItem::with_id(app, "dictation", l_start, true, None::<&str>)?;
+    let copy = MenuItem::with_id(app, "copy", l_copy, true, None::<&str>)?;
+    let history = MenuItem::with_id(app, "history", l_history, true, None::<&str>)?;
+    let settings = MenuItem::with_id(app, "settings", l_settings, true, None::<&str>)?;
+    let support = MenuItem::with_id(app, "support", l_support, true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", l_quit, true, None::<&str>)?;
     let separators = [
         PredefinedMenuItem::separator(app)?,
         PredefinedMenuItem::separator(app)?,

@@ -44,6 +44,9 @@ pub fn set_prefs(
     // Les autres fenêtres (la principale est créée cachée au démarrage, avant
     // l'assistant) se remettent à jour : langue, thème, état du modèle.
     let _ = app.emit("plume://prefs-changed", &next);
+    if previous.app_language != next.app_language {
+        crate::rebuild_tray(&app);
+    }
     if crate::dictation::needs_reload(&previous, &next) {
         crate::dictation::reload(app, &next);
     }
