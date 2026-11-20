@@ -1,7 +1,8 @@
 # Plume
 
-> **Version de test (0.1.0).** Installée et lancée sur un Ubuntu 24.04 vierge, testée de bout en bout dans un
-> écran virtuel (voix rejouée, texte collé). **Pas encore essayée avec un vrai micro sur un vrai PC**, ni sous
+> **Version de test (0.1.1).** Installée sur un Ubuntu 24.04 vierge, puis essayée sur un bureau XFCE complet
+> (assistant, toutes les pages, dictée réelle d'une voix enregistrée, texte collé dans un éditeur). La 0.1.1 corrige
+> cinq défauts de la 0.1.0 (voir la release). **Pas encore essayée avec un vrai micro sur un vrai PC**, ni sous
 > Wayland, ni sous Windows : vos retours sont les bienvenus dans les *issues*.
 > Sur Mac, la version native est [Plume](https://github.com/ppocass/plume). Cette version-ci remplace la bêta
 > [plume-linux](https://github.com/ppocass/plume-linux).
@@ -21,30 +22,28 @@ désactivé et Plume est entièrement hors ligne.
 
 ## Installation (Linux Mint 22 / Ubuntu 24.04)
 
-Le paquet s'appelle `plume_0.1.0_amd64.deb` (environ 18 Mo à télécharger, 56 Mo
+Le paquet s'appelle `plume_0.1.1_amd64.deb` (environ 18 Mo à télécharger, 56 Mo
 installé, plus le modèle de dictée téléchargé au premier lancement, environ
 640 Mo).
 
-1. Téléchargez `plume_0.1.0_amd64.deb` depuis la page des releases.
+1. Téléchargez `plume_0.1.1_amd64.deb` depuis la page des releases.
 2. **Double-cliquez sur le fichier.** Le Gestionnaire de logiciels (ou GDebi)
    s'ouvre : cliquez sur *Installer*, tapez votre mot de passe, c'est fini.
    L'icône Plume apparaît ensuite dans le menu des applications.
 3. Ou, dans un terminal :
 
    ```sh
-   sudo apt install ./plume_0.1.0_amd64.deb
+   sudo apt install ./plume_0.1.1_amd64.deb
    ```
 
-Rien n'est encore publié : le workflow de release prépare une release
-**brouillon** sur GitHub. En attendant, fabriquez le .deb comme expliqué dans
-`build/README.md`.
+Lien direct : [plume_0.1.1_amd64.deb](https://github.com/ppocass/plume-universal/releases/latest/download/plume_0.1.1_amd64.deb).
 
 Ubuntu 24.04 et Linux Mint 22 sont le minimum : le binaire a besoin de la glibc
 2.39. Ubuntu 22.04 (glibc 2.35) peut installer le paquet mais le chargeur
 avertit à propos de `GLIBC_2.39` ; ce n'est **pas pris en charge**.
 
 Le workflow de release construit aussi le .deb sur Ubuntu 22.04
-(`plume_0.1.0_amd64_ubuntu-22.04.deb`) pour les systèmes plus anciens. Cette
+(`plume_0.1.1_amd64_ubuntu-22.04.deb`) pour les systèmes plus anciens. Cette
 construction n'a pas été testée ici.
 
 ### Premier lancement

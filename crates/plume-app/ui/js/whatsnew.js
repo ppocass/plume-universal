@@ -122,7 +122,7 @@ async function boot() {
 
   if (eyebrow) {
     eyebrow.textContent = t("what_s_new_in_plume_version", {
-      version: data?.version ?? "0.1.0",
+      version: data?.version ?? "0.1.1",
     });
   }
 

@@ -1,8 +1,9 @@
 # Plume
 
-> **Test release (0.1.0).** Installed and launched on a fresh Ubuntu 24.04, tested end to end in a virtual
-> display (replayed voice, pasted text). **Not yet tried with a real microphone on a real PC**, nor on Wayland or
-> Windows: feedback is welcome in the issues.
+> **Test release (0.1.1).** Installed on a fresh Ubuntu 24.04, then tried on a full XFCE desktop (setup
+> assistant, every page, real dictation of a recorded voice, text pasted into an editor). 0.1.1 fixes five bugs
+> of 0.1.0 (see the release). **Not yet tried with a real microphone on a real PC**, nor on Wayland or Windows:
+> feedback is welcome in the issues.
 > On Mac, the native version is [Plume](https://github.com/ppocass/plume). This version replaces the
 > [plume-linux](https://github.com/ppocass/plume-linux) beta.
 
@@ -21,29 +22,27 @@ off and Plume is fully offline.
 
 ## Install (Linux Mint 22 / Ubuntu 24.04)
 
-The package is `plume_0.1.0_amd64.deb` (about 18 MB download, 56 MB installed,
+The package is `plume_0.1.1_amd64.deb` (about 18 MB download, 56 MB installed,
 plus the speech model downloaded on first launch, about 640 MB).
 
-1. Download `plume_0.1.0_amd64.deb` from the releases page.
+1. Download `plume_0.1.1_amd64.deb` from the releases page.
 2. **Double-click the file.** The Software Manager (or GDebi) opens: click
    *Install*, type your password, done. The Plume icon then appears in the
    application menu.
 3. Or, in a terminal:
 
    ```sh
-   sudo apt install ./plume_0.1.0_amd64.deb
+   sudo apt install ./plume_0.1.1_amd64.deb
    ```
 
-Nothing is published yet: the release workflow prepares a **draft** release on
-GitHub. Until it is published, build the .deb as described in
-`build/README.md`.
+Direct link: [plume_0.1.1_amd64.deb](https://github.com/ppocass/plume-universal/releases/latest/download/plume_0.1.1_amd64.deb).
 
 Ubuntu 24.04 and Linux Mint 22 are the minimum: the binary needs glibc 2.39.
 Ubuntu 22.04 (glibc 2.35) can install the package but the loader warns about
 `GLIBC_2.39`; it is **not supported**.
 
 The release workflow also builds the .deb on Ubuntu 22.04
-(`plume_0.1.0_amd64_ubuntu-22.04.deb`) for older systems. That build has not been
+(`plume_0.1.1_amd64_ubuntu-22.04.deb`) for older systems. That build has not been
 tested here.
 
 ### First launch

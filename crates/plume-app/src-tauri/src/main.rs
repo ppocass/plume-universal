@@ -343,10 +343,10 @@ mod tests {
         assert_eq!(show_target(None), None);
     }
 
-    /// `plume --version` imprime « Plume 0.1.0 » (la version du workspace).
+    /// `plume --version` imprime « Plume 0.1.1 » (la version du workspace).
     #[test]
     fn la_ligne_de_version_est_plume_0_1_0() {
-        assert_eq!(VERSION_LINE, "Plume 0.1.0");
+        assert_eq!(VERSION_LINE, "Plume 0.1.1");
     }
 
     /// `plume --check` sort les cinq rubriques attendues, sur une ligne chacune.
@@ -366,6 +366,6 @@ mod tests {
                 "rubrique absente : {key}\n{report}"
             );
         }
-        assert!(report.starts_with("Plume 0.1.0\n"));
+        assert!(report.starts_with("Plume 0.1.1\n"));
     }
 }
