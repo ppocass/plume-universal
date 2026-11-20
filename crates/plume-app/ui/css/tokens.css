@@ -48,7 +48,7 @@
   --sidebar-footer-bg: rgba(255, 255, 255, 0.72);
   --sidebar-footer-fallback: #f7f7f7;
   --sidebar-footer-filter: blur(20px) saturate(180%);
-  --pill-fill: rgba(255, 255, 255, 0.55);
+  --pill-fill: rgba(255, 255, 255, 0.9);
   --pill-fill-fallback: #efefef;
   --pill-filter: blur(12px) saturate(180%);
   --pill-overlay: rgba(255, 255, 255, 0.3);
@@ -255,7 +255,7 @@
     --sidebar-bg-fallback: #2a2a2c;
     --sidebar-footer-bg: rgba(30, 30, 30, 0.72);
     --sidebar-footer-fallback: #242424;
-    --pill-fill: rgba(40, 40, 40, 0.45);
+    --pill-fill: rgba(22, 22, 22, 0.88);
     --pill-fill-fallback: #3a3a3a;
     --pill-overlay: rgba(0, 0, 0, 0.34);
     --pill-stroke: rgba(255, 255, 255, 0.2);
@@ -308,7 +308,7 @@
   --sidebar-bg-fallback: #2a2a2c;
   --sidebar-footer-bg: rgba(30, 30, 30, 0.72);
   --sidebar-footer-fallback: #242424;
-  --pill-fill: rgba(40, 40, 40, 0.45);
+  --pill-fill: rgba(22, 22, 22, 0.88);
   --pill-fill-fallback: #3a3a3a;
   --pill-overlay: rgba(0, 0, 0, 0.34);
   --pill-stroke: rgba(255, 255, 255, 0.2);
@@ -359,7 +359,7 @@
   --sidebar-bg-fallback: #f2f2f2;
   --sidebar-footer-bg: rgba(255, 255, 255, 0.72);
   --sidebar-footer-fallback: #f7f7f7;
-  --pill-fill: rgba(255, 255, 255, 0.55);
+  --pill-fill: rgba(255, 255, 255, 0.9);
   --pill-fill-fallback: #efefef;
   --pill-overlay: rgba(255, 255, 255, 0.3);
   --pill-stroke: rgba(255, 255, 255, 0.55);

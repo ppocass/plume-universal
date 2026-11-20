@@ -139,6 +139,36 @@ async function boot() {
   await listen("plume://navigate", (event) => {
     selectPage(event.payload);
   });
+
+  // Réglages changés ailleurs (assistant, Nouveautés…) : la fenêtre a été
+  // créée au démarrage, avant l'assistant, et gardait l'anglais et « modèle non
+  // téléchargé ». On ne recharge la page que si la langue change, pour ne pas
+  // couper une saisie en cours dans les Réglages.
+  let shownLanguage = prefs?.appLanguage ?? null;
+  let shownAppearance = prefs?.appearance ?? null;
+  await listen("plume://prefs-changed", async (event) => {
+    const next = event.payload ?? {};
+    if (next.appearance !== shownAppearance) {
+      shownAppearance = next.appearance;
+      await initTheme(next);
+    }
+    if (next.appLanguage !== shownLanguage) {
+      shownLanguage = next.appLanguage;
+      await initI18n(next);
+      await hydrateIcons(document);
+      await loadPage(current);
+    } else if (current === "home") {
+      // La carte « Configuration requise » de l'Accueil relit son état.
+      await loadPage(current);
+    }
+    await refreshEngineState();
+  });
+  await listen("plume://model-done", async () => {
+    await refreshEngineState();
+    if (current === "home") {
+      await loadPage(current);
+    }
+  });
 }
 
 boot().catch((error) => console.error("démarrage de la coquille :", error));

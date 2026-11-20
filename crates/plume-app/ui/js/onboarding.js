@@ -38,7 +38,11 @@ function pageSpring() {
   const value = getComputedStyle(document.documentElement)
     .getPropertyValue("--motion-page-spring")
     .trim();
-  return value.includes("cubic-bezier") ? value.split(" ").pop() : "ease-out";
+  // « 420ms cubic-bezier(0.34, 1.14, 0.64, 1) » : on garde la fonction entière.
+  // (L'ancien split(" ").pop() rendait « 1) », refusé par animate() : l'ancienne
+  // page n'était jamais retirée et les étapes s'empilaient.)
+  const match = value.match(/cubic-bezier\([^)]*\)/);
+  return match ? match[0] : "ease-out";
 }
 
 const DEMO_PREFS = {

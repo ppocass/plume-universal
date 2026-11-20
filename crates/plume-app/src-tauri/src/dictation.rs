@@ -279,6 +279,10 @@ static PILL_GENERATION: AtomicU64 = AtomicU64::new(0);
 fn show_pill(app: &AppHandle) {
     PILL_GENERATION.fetch_add(1, Ordering::SeqCst);
     if let Some(window) = app.get_webview_window("pill") {
+        // Jamais le clavier : sinon, sous X11, le gestionnaire de fenêtres
+        // donne le focus à la pastille et le Ctrl+V du collage part chez elle
+        // au lieu de l'app où l'on écrit (vu sur XFCE le 20/11/2026).
+        let _ = window.set_focusable(false);
         let _ = window.show();
     }
 }

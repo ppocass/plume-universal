@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use plume_core::store::{Dictation, Prefs};
 use serde::Serialize;
 use serde_json::Value;
-use tauri::{AppHandle, Manager, State, WebviewUrl, WebviewWindowBuilder};
+use tauri::{AppHandle, Emitter, Manager, State, WebviewUrl, WebviewWindowBuilder};
 use uuid::Uuid;
 
 use crate::state::AppState;
@@ -41,6 +41,9 @@ pub fn set_prefs(
         .map_err(|error| format!("réglages non enregistrés : {error}"))?;
     *current = next.clone();
     drop(current);
+    // Les autres fenêtres (la principale est créée cachée au démarrage, avant
+    // l'assistant) se remettent à jour : langue, thème, état du modèle.
+    let _ = app.emit("plume://prefs-changed", &next);
     if crate::dictation::needs_reload(&previous, &next) {
         crate::dictation::reload(app, &next);
     }

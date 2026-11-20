@@ -1,0 +1,1 @@
+{"default":{"identifier":"default","description":"Fenêtres et événements de la coquille Plume.","local":true,"windows":["main","onboarding","pill","whatsnew"],"permissions":["core:default","core:window:allow-close","core:window:allow-show","core:window:allow-hide","core:window:allow-set-focus"]}}

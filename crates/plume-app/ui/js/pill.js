@@ -123,7 +123,8 @@ function drawBars() {
   ctx.fillStyle = color;
   // `.shadow(color.opacity(0.5), radius: 4)` : le halo doux des barres.
   ctx.shadowColor = withAlpha(color, 0.5);
-  ctx.shadowBlur = 4 * ratio;
+  // radius SwiftUI 4 ≈ shadowBlur 8 sur un canvas (le flou du canvas vaut 2 σ).
+  ctx.shadowBlur = 8 * ratio;
 
   for (let index = 0; index < BAR_COUNT; index += 1) {
     const heightPx = barHeight(index, state.clock, thinking);
